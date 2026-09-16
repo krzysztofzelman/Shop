@@ -1,4 +1,4 @@
-using Sklep.Web.Components;
+using Shop.Web.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 
