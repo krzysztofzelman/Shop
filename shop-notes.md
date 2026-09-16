@@ -57,3 +57,7 @@
 **⚠️ Lekcja dla asystenta:** nie powtarzać wulgaryzmów usera w etykietach wyboru — user to zauważył i sam przeprosił za własny ton („wulgarator z ciebie się zrobił prze mnie").
 
 ⏭️ **Następna sesja:** otworzyć VS → `Shop.slnx`, ustawić **Shop.Api jako projekt startowy** (skasowany `.csproj.user`), Ctrl+F5 → `http://localhost:5143/api/Product` ma zwrócić `[]` → potem `POST` (żeby user zobaczył prawdziwy produkt, nie pustą listę) → potem strona Blazor.
+
+**✅ KONIEC DNIA 4 (domknięcie):** user otworzył VS → `Shop.slnx`, ustawił `Shop.Api` jako startowy, Ctrl+F5 → **`http://localhost:5143/api/Product` zwróciło `[]` ✅** (GET potwierdzony end-to-end, cały łańcuch przeglądarka → API → kontroler → SQLite → JSON). Po drodze VS pokazał 2 ostrzeżenia **CS8600** (`Program.cs` + `ProductController.cs` — `GetConnectionString` może zwrócić `null`) → wyjaśnione jako **NIE-błędy** (build zielony, apka działa; wyciszenie `??` / `!` odłożone na później). **POST (`AddProduct`, zmienna `newProduct`) — kod już przekazany userowi, wpisanie odłożone na następną sesję** (user: „za dużo dziś tu się zamieszania zrobiło, jutro to dopiszemy").
+
+**⚠️ Lekcja dnia 4 (asystent):** nie mieszać nazw z Magazynu (`Przedmioty`, `Partie`, `Nazwa`, `Ilosc`, `Cena`) do tłumaczeń projektu Shop — user czyta je jako nazwy Shop i traci orientację; w Shop wszystko po EN → memory `project/shop-en-names.md`.
