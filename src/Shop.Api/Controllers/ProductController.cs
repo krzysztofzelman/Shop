@@ -37,4 +37,20 @@ public class ProductController : ControllerBase
         }
         return products;
     }
+    [HttpPost]
+    public void AddProduct(Product newProduct)
+    {
+        string connectionString = _config.GetConnectionString("ShopDb");
+        using (SqliteConnection connection = new SqliteConnection(connectionString))
+        {
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = "INSERT INTO Products (Name, Quantity, Price) VALUES (@Name, @Quantity, @Price)";
+            command.Parameters.AddWithValue("@Name", newProduct.Name);
+            command.Parameters.AddWithValue("@Quantity", newProduct.Quantity);
+            command.Parameters.AddWithValue("@Price", newProduct.Price);
+            command.ExecuteNonQuery();
+        }
+    }
+
 }

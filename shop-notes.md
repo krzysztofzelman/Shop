@@ -61,3 +61,25 @@
 **✅ KONIEC DNIA 4 (domknięcie):** user otworzył VS → `Shop.slnx`, ustawił `Shop.Api` jako startowy, Ctrl+F5 → **`http://localhost:5143/api/Product` zwróciło `[]` ✅** (GET potwierdzony end-to-end, cały łańcuch przeglądarka → API → kontroler → SQLite → JSON). Po drodze VS pokazał 2 ostrzeżenia **CS8600** (`Program.cs` + `ProductController.cs` — `GetConnectionString` może zwrócić `null`) → wyjaśnione jako **NIE-błędy** (build zielony, apka działa; wyciszenie `??` / `!` odłożone na później). **POST (`AddProduct`, zmienna `newProduct`) — kod już przekazany userowi, wpisanie odłożone na następną sesję** (user: „za dużo dziś tu się zamieszania zrobiło, jutro to dopiszemy").
 
 **⚠️ Lekcja dnia 4 (asystent):** nie mieszać nazw z Magazynu (`Przedmioty`, `Partie`, `Nazwa`, `Ilosc`, `Cena`) do tłumaczeń projektu Shop — user czyta je jako nazwy Shop i traci orientację; w Shop wszystko po EN → memory `project/shop-en-names.md`.
+
+---
+
+**DZIEŃ 5 (2026-09-21, poniedziałek) — POST `AddProduct` ✅ I PIERWSZY REKORD W BAZIE ✅.** Powrót po 5 dniach przerwy (ostatnia sesja 2026-09-16). User: „jestem po małej przerwie... chciałbym coś pokodować dziś" → plan uzgodniony (A): powtórka → 1 przeróbka = POST → test curlem.
+
+**Zagadka (na własnym GET):** która linijka *jest* pytaniem, a która je *wysyła*? User: „`CommandText` to pytanie do bazy, zawiera konkrety, resztę nie wiem" → domknięte: `CommandText` = tekst listu (nic nie wysyła), `ExecuteReader()` = wysłanie; tabelka rozkaz/ cisza (`ExecuteNonQuery`) vs pytanie/ tabelka (`ExecuteReader`).
+
+**⚠️ ZALEW INFORMACJI (główny problem dnia):** odpowiedź z 2 tabelkami porównawczymi + blokiem kodu + pytaniem kontrolnym → „nie no za dużo tego. zasypałeś mnie falą informacji". Ratunek: wycofanie wszystkiego i zostawienie 3 punktów (plik / miejsce / blok kodu) — **ale to nie wystarczyło**: user od razu „to co ja mam zrobić?" (odchudzony opis to nadal opis). Zadziałała dopiero **numerowana lista CZYNNOŚCI** (1. otwórz plik w Solution Explorer, 2. znajdź ostatnią klamrę klasy, 3. wklej blok, 4. Ctrl+S → „gotowe"). **Lekcja: odpowiedź = instrukcja, nie opis + tabelki.**
+
+**GET/POST — user zapytał wprost „ja nie wiem co to oddaje i po co to jest":** wyjaśnione tabelką 4 wierszy (GET=daj listę→select→JSON, POST= dodaj→INSERT→nic, PUT= popraw→UPDATE→nic, DELETE= usuń→DELETE→nic) + powiązanie z jego kodem: `GetProducts` ma `List<Product>` (bo oddaje), `AddProduct` ma `void` (bo nie oddaje).
+
+**⚠️ „Nie chcę mi się tego pisać":** user nie chciał wpisywać kodu i zapytał, czy asystent może to zrobić za niego („nie wiem czy to tak spoko jak za mnie wpiszesz? co myślisz?"). Odpowiedź: szczerze — słabsza nauka, wartość jest w pisaniu rękami; kompromis zaproponowany: **ramkę skopiować z `GetProducts`**, ręcznie wpisać tylko 4 linijki różnicy + nagłówek. User ostatecznie przepisał sam.
+
+**Kontrola kodu (read_file) — 3 błędy realne + literówki:** (1) `using (SqliteConnection SqliteConnection(connectionString))` — brakowało `connection = new` (to blokowało kompilację); (2) `new Product.Name` zamiast `newProduct.Name` (klasa vs zmienna z nagłówka); (3) **brakowało `command.ExecuteNonQuery();`** — kod by się skompilował, ale rozkaz nigdy nie poleciałby do bazy. Literówki: `AddProduckt`, `newProduckt`, `CreateComand`, `ComandText`, brak `)` na końcu `VALUES (...)`. Asystent poprawił całość (delegacja jak w Dniu 3).
+
+**🐛 BŁĄD DNIA — HTTP 307 i `UseHttpsRedirection`:** POST wykonany, curl milczał (poprawnie — `void`), ale GET dalej zwracał pusto. Diagnoza `curl.exe -i`: **`HTTP/1.1 307 Temporary Redirect` → `Location: https://localhost:7104/api/Product`**. Przyczyna: `app.UseHttpsRedirection();` w `Program.cs` — API odsyła http→https; **przeglądarka skacze za przekierowaniem sama (dlatego GET w oknie działał), curl nie skacze → POST w ogóle nie dochodził do kontrolera**. Fix: usunięta ta jedna linia z `Program.cs` (tak samo chodzi MagazynApi) → restart (user, Ctrl+F5) → POST przeszedł. **To też wyjaśnia wcześniejsze 404 na `https://localhost:7104/` — user trafił tam przez to przekierowanie.**
+
+**✅ WYNIK KOŃCOWY:** `[{"id":1,"name":"Klawiatura","quantity":5,"price":199.99}]` — **pierwszy rekord w bazie, cały łańcuch end-to-end** (PowerShell → POST → kontroler → INSERT → SQLite → SELECT → JSON). Obserwacje przekazane: `id:1` nadała baza (`AUTOINCREMENT`); nazwy pól małymi literami (ASP.NET domyślnie camelCase — nie błąd); cena z kropką (JSON zna tylko kropkę).
+
+**Porządki:** testy curl robione z PowerShell w folderze `Shop\database` → powstał plik-śmieć `body.json` → dopisany do `.gitignore`.
+
+⏭️ **Następna sesja:** **strona Blazor** — pierwszy widok produktów zamiast JSON-a (user: „tangible" — JSON nie czyta się jako aplikacja). Do rozważenia później: PUT/DELETE w kontrolerze, porządki szablonu Web (`Counter`/`Weather`/`NavMenu`) + jeden klawisz startu (wzór Magazyn).
