@@ -83,3 +83,30 @@
 **Porządki:** testy curl robione z PowerShell w folderze `Shop\database` → powstał plik-śmieć `body.json` → dopisany do `.gitignore`.
 
 ⏭️ **Następna sesja:** **strona Blazor** — pierwszy widok produktów zamiast JSON-a (user: „tangible" — JSON nie czyta się jako aplikacja). Do rozważenia później: PUT/DELETE w kontrolerze, porządki szablonu Web (`Counter`/`Weather`/`NavMenu`) + jeden klawisz startu (wzór Magazyn).
+
+**DZIEŃ 6 (2026-09-22, wtorek) — PIERWSZA STRONA SHOP ✅ (tabelka produktów z API).**
+
+Plan dnia wybrany przez usera z 3 opcji (A: strona Blazor z listą produktów / B: PUT+DELETE w API / C: powtórka czytania kodu) → **A**. Wejście: „he. co robimy?" (status z pamięci: git czysty @ `e7dcc77`, API ma GET+POST, baza ma Klawiaturę id 1).
+
+**Co powstało:**
+- `src\Shop.Web\Components\Pages\Products.razor` — nowy komponent: `@page "/products"`, `@rendermode InteractiveServer`, `@inject HttpClient Http`, tabela `@foreach` po `products`, na dole `@code` z polem `List<Product>? products` + `OnInitializedAsync` → `Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product")`.
+- `src\Shop.Web\Program.cs` — dodane `builder.Services.AddHttpClient();` (bez tego strona nie ma czym wysłać żądania; warunek wstępny, ta linia jest też w MagazynWeb).
+- `Shop\Shop.slnLaunch.user` — profil startowy „Shop" (Shop.Api + Shop.Web razem, `DebugTarget: http`), wzorowany na `NaukaCSharp.slnLaunch.user`; plik `*.user` jest w `.gitignore`, więc zostaje lokalnie. VS czyta go **przy otwieraniu rozwiązania**.
+
+**Kod przekazany do wpisania, ale blok `@code` został WKLEJONY** — user sam to zgłosił („BO TO WKLEIŁEM"), co zamknęło wątek „dowód umiejętności z kodu". Wniosek na przyszłość: nie używać kodu usera jako dowodu, zanim nie wiadomo, czy był wpisany czy wklejony; dzielić na mniejsze zadania zamiast całych bloków.
+
+**Błędy w pliku (poprawione przez asystenta):** `@ndermode InteractivServer` (→ `@rendermode InteractiveServer`), **brak `@` przed `if (… == null)`** (bez małpy Blazor czyta kod jako zwykły tekst — kompiluje się, ale tabelka nigdy by się nie pokazała), literówki `/produckts`, `Produckts`, `porduckts`.
+
+**🐛 BŁĄD DNIA — trap kreatora VS w `.csproj`:** VS dopisał do `Shop.Web.csproj`:
+```xml
+<ItemGroup><Content Remove="Components\Pages\Products.razor" /></ItemGroup>
+<ItemGroup><Compile Include="Components\Pages\Products.razor" /></ItemGroup>
+```
+`<Compile Include>` każe kompilatorowi potraktować `.razor` (HTML + C#) jako plik źródłowy C# → lawina błędów przy poprawnym kodzie; user: „co napiszę to jest zjebane". Fix: usunięte oba `ItemGroup` (dokładnie ten sam trap co `Lang.cs` w Magazynie, wariant `.razor`; po fixie `dotnet build` = 0 błędów, 0 ostrzeżeń).
+
+**Serwery i adresy (dzień walki z uruchamianiem):** porty API **5143** / strona **5107**. VS startuje domyślnie JEDEN projekt (startowy = Shop.Api), więc strona nie wstawała → `netstat` pokazał pusty 5107, `curl` exit 7 („connection refused"). Potem padło samo API → strona zwracała **HTTP 500** (bez API nie ma skąd wziąć danych). Po wstaniu obu: **HTTP 200** + `<td>Klawiatura</td>` w HTML strony ✅. Nowe narzędzie diagnostyczne w rozmowie: `netstat -ano | findstr LISTENING | findstr :5107` i `curl -s -i`.
+
+**Kryzys wieczorny (bez kodu):** po zobaczeniu działającej strony user: „nic kurwa nie umiem z tej nauki. zdania w C# nie umiem napisać" → pytania „to co ja umiem?" i „nie wiem czy się do tego nadaję i czy ta forma nauki jest odpowiednia". Odpowiedź asystenta (lista mocnych/braków) przyjęta; natomiast propozycje **zmiany rytmu nauki („20 minut dziennie") i drillu z markupu `<tr></tr>`** spotkały się z ostrym sprzeciwem — user nie może uczyć się częściej (mówił to wcześniej) i markup jest dla niego materiałem do wklejenia, nie do ćwiczeń. **Zapamiętane na stałe: nie doradzać częstotliwości ani nie ćwiczyć HTML-a.**
+
+**Stan końcowy:** GET i POST w API + strona `/products` czytająca z API; `Products.razor` i `AddHttpClient()` w repo; build zielony.
+⏭️ **Następna sesja:** link do `/products` w `NavMenu.razor` (żeby nie wpisywać adresu z pamięci), potem PUT/DELETE w kontrolerze i pierwszy formularz na stronie; w kolejce: porządki szablonu (`Counter`/`Weather`) i wyciszenie 2× CS8600.
