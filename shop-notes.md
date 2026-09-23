@@ -138,3 +138,19 @@ Wyjaśnienie podane TOP-DOWN (o to poprosił: „jakoś bardziej sensownie wytł
 ⚠️ **Uwaga na przyszłość:** plik `database\shop.db` **jest w repo** (nie ma go w `.gitignore`), więc każda zmiana danych (POST/DELETE) zmienia ten plik i trafia do commita.
 
 ⏭️ **NASTĘPNY KROK (ta sama sesja):** najpierw przywrócić produkt przez POST (baza jest pusta — nie ma czego klikać), potem **przycisk „Usuń" w `Products.razor`** (klik → `Http.DeleteAsync` → odświeżenie listy); zwykły link HTML nie umie wysłać DELETE. Potem PUT i porządki szablonu.
+
+**cd.2 DNIA 7 (2026-09-23) — przycisk „Usuń" w tabeli (wpisany przez usera; kompiluje się ✅, klik NIEPOTWIERDZONY).**
+
+**Przywrócenie produktu (user, POST):** `Set-Content body.json` + `curl.exe -X POST ...` → GET = `[{"id":2,"name":"Klawiatura",...}]` — **`id: 2`, nie 1**, czyli `AUTOINCREMENT` pamięta numer po usuniętym wierszu ✅.
+
+**`Products.razor` (3 wstawki):** (1) `<th>Actions</th>` w nagłówku; (2) w wierszu `<td>` z `<button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">Usuń</button>`; (3) w `@code` metoda `DeleteProduct(int id)` = `await Http.DeleteAsync($"http://localhost:5143/api/Product/{id}")` + ponowny `GetFromJsonAsync` (odświeżenie listy — bez tego tabelka dalej pokazywałaby usunięty wiersz, bo `products` siedzi w pamięci strony).
+
+**Nowe koncepty (podane krótko):** `@onclick` (małpa jak przy `@if` — bez niej to zwykły tekst dla HTML), `() => Metoda(product.Id)` (lambda — który wiersz kliknięto; `product` z `@foreach`), `$"…{id}"` (wstawienie wartości w tekst adresu), `async Task` zamiast `void` (metoda czeka na serwer). Markup z góry nazwany „lakierem" (wklejka, nie materiał do ćwiczeń).
+
+**🐛 BŁĄD DNIA (pouczający):** metoda nazwana `DeleteProduckt`, a przycisk woła `DeleteProduct` → build wywala „nazwa `DeleteProduct` nie istnieje" (CS0103). **Lekcja: markup i `@code` łączą się po DOKŁADNEJ nazwie metody** — VS nie podpowiada między tabelką a blokiem kodu, więc literówka w nazwie wychodzi dopiero przy kompilacji. Fix: asystent poprawił jedną linię (`DeleteProduckt` → `DeleteProduct`). Spacja po kropce w `Http. GetFromJsonAsync` = bez znaczenia (C# ignoruje).
+
+**Weryfikacja:** `dotnet build src\Shop.Web\Shop.Web.csproj` = **0 błędów, 0 ostrzeżeń** ✅ (po fixie). **Klik NIEPOTWIERDZONY w przeglądarce** — user zakończył sesję przed uruchomieniem.
+
+⚠️ **Sygnał na następny raz:** user o bloku `@code`: „**nie ma sensu jechać linijka po linijce jak ja tam nic nie rozumiem z tego @code**" — nie forsować przechodzenia całego bloku; czytanie wracać na MAŁYCH kawałkach (jedna metoda) i zawsze z widocznym efektem (klik → zmiana w tabeli).
+
+⏭️ **Następna sesja:** (1) odpalić i KLIKNĄĆ „Usuń" (test, czy przycisk działa end-to-end), (2) PUT (edycja) w API + formularz/edycja na stronie, (3) porządki szablonu (`Counter`/`Weather`).

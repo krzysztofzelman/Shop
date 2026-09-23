@@ -19,6 +19,7 @@ else
                 <th>Name</th>
                 <th>Quantity</th>
                 <th>Price</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -30,6 +31,9 @@ else
                     <td>@product.Name</td>
                     <td>@product.Quantity</td>
                     <td>@product.Price zł</td>
+                    <td>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">Usuń</button>
+                    </td>
                 </tr>
             }
         </tbody>
@@ -42,5 +46,11 @@ else
     protected override async Task OnInitializedAsync()
     {
         products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+    }
+
+    private async Task DeleteProduct(int id)
+    {
+        await Http.DeleteAsync($"http://localhost:5143/api/Product/{id}");
+        products = await Http. GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
     }
 }
