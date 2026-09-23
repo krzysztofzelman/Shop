@@ -125,4 +125,16 @@ Plan dnia wybrany przez usera z 3 opcji (A: strona Blazor z listą produktów / 
 
 **Uwaga dydaktyczna:** przy klikologii startu działa **jedna czynność na raz + fakt zamiast diagnozy**; gdy uruchamianie męczy usera, szybciej odpalić instancje w tle i pokazać działający wynik, niż tłumaczyć kolejne kroki w VS.
 
-⏭️ **Następna sesja:** (1) sprawdzić multi-startup po zamknięciu/otwarciu `Shop.slnx` (1 Ctrl+F5 = API + strona), (2) PUT/DELETE w `ProductController` + pierwszy formularz na stronie, (3) porządki szablonu (`Counter`/`Weather`; pozycja „Produkty" ma tymczasowo tę samą ikonę co Weather).
+**cd. DNIA 7 (2026-09-23) — MULTI-STARTUP ✅ ZAMKNIĘTY + DELETE W API ✅.**
+
+**Multi-startup ✅ (ustawiony W OKNIE VS, nie plikiem):** prawy klik na rozwiązanie `Shop` → **Konfiguruj projekty startowe...** → **„Wiele projektów startowych"** → kolumna **Akcja**: `Shop.Api` i `Shop.Web` = **„Uruchom"** (polski VS nie ma słowa „Start" — user: „nie mam start jest uruchom"), `Shop.Shared` = „Brak"; kolumna **„Element debugowania"** = **`http`** przy obu → OK. **Zadziałało od razu, bez przeładowania rozwiązania** (ręcznie wpisany `Shop\Shop.slnLaunch.user` VS nie wziął — patrz Dzień 6). User: „**dobra działa teraz**" → **1 Ctrl+F5 = API 5143 + strona 5107**.
+
+**DELETE (`DeleteProduct`) ✅ — wpisany przez usera SAMODZIELNIE, poprawnie za pierwszym razem.** Nowe rzeczy (2): (1) **numer id bierze się z ADRESU** — `[HttpDelete("{id}")]` + parametr `int id`, a nie z ciała żądania jak w POST, bo adres wskazuje konkretny wiersz; (2) **`WHERE Id = @Id`** — bez `WHERE` rozkaz usunąłby wszystkie wiersze. Reszta = wzór 1:1 z `AddProduct`: rozkaz → cisza → `void` + `ExecuteNonQuery`. Artefakt wpisywania usera: `"DELete forM Products WHERE Id = @Id"` — **działa** (SQL nie rozróżnia wielkości liter w słowach kluczowych), zostawiony; do wygładzenia przy okazji.
+
+Wyjaśnienie podane TOP-DOWN (o to poprosił: „jakoś bardziej sensownie wytłumacz co robi ten kod"): zamysł całej układanki (czasownik HTTP = metoda = jeden rozkaz SQL) → skąd ASP.NET wie, którą metodę uruchomić (`[Route("api/[controller]")]` + `[HttpDelete("{id}")]`) → linia po linii → gdzie to siedzi w łańcuchu → dlaczego numer z adresu, a nie z ciała. Reakcja usera: „**wątpię że tyle rzeczy zapamiętam**" → ramka **„piosenka w 5 krokach"** (connectionString → connection + `Open` → `CommandText` → `AddWithValue` → `Execute…`): między GET/POST/DELETE zmienia się TYLKO tekst SQL i to, czy oddajemy coś (`void` vs `List<Product>`) — „wystarczy rozpoznawać, nie recytować". User: „jak bym miał to pisać to bym skądś zerżnął, raczej niż wymyślał" → normalne: branie wzorca z dokumentacji to standard, nie wstyd.
+
+**Test (user, PowerShell, po Ctrl+F5):** `curl.exe -s http://localhost:5143/api/Product` → `[{"id":1,"name":"Klawiatura","quantity":5,"price":199.99}]` → `curl.exe -s -X DELETE http://localhost:5143/api/Product/1` → **cisza** → `curl.exe -s http://localhost:5143/api/Product` → **`[]`** ✅ — usuwanie end-to-end (PowerShell → DELETE → `DELETE FROM Products` → SQLite → GET).
+
+⚠️ **Uwaga na przyszłość:** plik `database\shop.db` **jest w repo** (nie ma go w `.gitignore`), więc każda zmiana danych (POST/DELETE) zmienia ten plik i trafia do commita.
+
+⏭️ **NASTĘPNY KROK (ta sama sesja):** najpierw przywrócić produkt przez POST (baza jest pusta — nie ma czego klikać), potem **przycisk „Usuń" w `Products.razor`** (klik → `Http.DeleteAsync` → odświeżenie listy); zwykły link HTML nie umie wysłać DELETE. Potem PUT i porządki szablonu.

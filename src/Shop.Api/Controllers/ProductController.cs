@@ -52,5 +52,18 @@ public class ProductController : ControllerBase
             command.ExecuteNonQuery();
         }
     }
+    [HttpDelete("{id}")]
+    public void DeleteProduct (int id)
+    {
+        string connectionString = _config.GetConnectionString("ShopDb");
+        using (SqliteConnection connection = new SqliteConnection(connectionString))
+        {
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM Products WHERE Id = @Id";
+            command.Parameters.AddWithValue("@Id", id);
+            command.ExecuteNonQuery();
+        }
+    }
 
 }
