@@ -110,3 +110,19 @@ Plan dnia wybrany przez usera z 3 opcji (A: strona Blazor z listą produktów / 
 
 **Stan końcowy:** GET i POST w API + strona `/products` czytająca z API; `Products.razor` i `AddHttpClient()` w repo; build zielony.
 ⏭️ **Następna sesja:** link do `/products` w `NavMenu.razor` (żeby nie wpisywać adresu z pamięci), potem PUT/DELETE w kontrolerze i pierwszy formularz na stronie; w kolejce: porządki szablonu (`Counter`/`Weather`) i wyciszenie 2× CS8600.
+
+**DZIEŃ 7 (2026-09-23, środa) — POZYCJA „Produkty" W MENU ✅.**
+
+**Zagadka (czytanie `NavMenu.razor`):** które fragmenty decydują o tym, dokąd prowadzi link i co widać w menu? User: „nie wiem, strzelam — (a) `NavLinkMatch.All`, (b) Home, Counter, Weather". Korekta wprost: **(b) trafione** (napis = tekst między `</span>` a `</NavLink>`); **(a) nie** — za adres odpowiada `href="..."` (`href=""` = strona główna), a `Match="NavLinkMatch.All"` mówi tylko „podświetl mnie, gdy adres zgadza się dokładnie".
+
+**Przeróbka (user):** nowa pozycja w `Shop\src\Shop.Web\Components\Layout\NavMenu.razor` — kopia sąsiedniej pozycji, wstawiona za blokiem Weather (przed `</nav>`): `<div class="nav-item px-3">` → `<NavLink class="nav-link" href="products">` → `<span class="bi bi-list-nested-nav-menu">` + napis `Produkty`. Weryfikacja `read_file` ✅ (wcięcia i struktura jak wzorzec). Jedyna zmiana w kodzie tego dnia.
+
+**Uruchamianie — awaria cierpliwości:** VS było otwarte, ale nic nie chodziło (`netstat` — 5143/5107 milczące). User przemęczony klikaniem („testujesz moją cierpliwość", „co mam do chuja zrobić krok po kroku") → asystent **odpalił oba projekty w tle** (`dotnet run --launch-profile http`), user nie protestował (tryb AWARII, precedens Dnia 6). Weryfikacja końcowa: API `http://localhost:5143/api/Product` → **200**; strona `http://localhost:5107/products` → **200**; w HTML strony pozycja menu `href="products"` + napis `Produkty` ✅. User: „**no jest**" + tabelka `1 Klawiatura 5 199,99 zł`. Instancje z tła zatrzymane przy zamykaniu dnia (porty wolne).
+
+**⚠️ Wpadka narzędziowa dnia:** otwarcie `Shop.slnx` z dysku (Plik → Otwórz → Projekt/Rozwiązanie) uruchamia **VS Code**, bo Windows ma pliki `.slnx` skojarzone z VS Code — user zgłosił to 2× („otwiera mi się kolejny raz vs code"). Obejście na już: nie otwierać pliku z dysku, tylko z listy **Plik → Ostatnie projekty i rozwiązania**. Do naprawy na spokojnie: skojarzenie `.slnx` z Visual Studio.
+
+**❌ NIEPOTWIERDZONE:** multi-startup (`Shop\Shop.slnLaunch.user`) — VS nie był przeładowany, a instancje z tła zajmowały porty, więc nie dało się sprawdzić.
+
+**Uwaga dydaktyczna:** przy klikologii startu działa **jedna czynność na raz + fakt zamiast diagnozy**; gdy uruchamianie męczy usera, szybciej odpalić instancje w tle i pokazać działający wynik, niż tłumaczyć kolejne kroki w VS.
+
+⏭️ **Następna sesja:** (1) sprawdzić multi-startup po zamknięciu/otwarciu `Shop.slnx` (1 Ctrl+F5 = API + strona), (2) PUT/DELETE w `ProductController` + pierwszy formularz na stronie, (3) porządki szablonu (`Counter`/`Weather`; pozycja „Produkty" ma tymczasowo tę samą ikonę co Weather).
