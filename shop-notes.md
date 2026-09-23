@@ -149,8 +149,8 @@ Wyjaśnienie podane TOP-DOWN (o to poprosił: „jakoś bardziej sensownie wytł
 
 **🐛 BŁĄD DNIA (pouczający):** metoda nazwana `DeleteProduckt`, a przycisk woła `DeleteProduct` → build wywala „nazwa `DeleteProduct` nie istnieje" (CS0103). **Lekcja: markup i `@code` łączą się po DOKŁADNEJ nazwie metody** — VS nie podpowiada między tabelką a blokiem kodu, więc literówka w nazwie wychodzi dopiero przy kompilacji. Fix: asystent poprawił jedną linię (`DeleteProduckt` → `DeleteProduct`). Spacja po kropce w `Http. GetFromJsonAsync` = bez znaczenia (C# ignoruje).
 
-**Weryfikacja:** `dotnet build src\Shop.Web\Shop.Web.csproj` = **0 błędów, 0 ostrzeżeń** ✅ (po fixie). **Klik NIEPOTWIERDZONY w przeglądarce** — user zakończył sesję przed uruchomieniem.
+**Weryfikacja:** `dotnet build src\Shop.Web\Shop.Web.csproj` = **0 błędów, 0 ostrzeżeń** ✅ (po fixie). **Klik POTWIERDZONY ✅** — user uruchomił stronę i kliknął **Usuń**: wiersz zniknął z tabelki („usunięty jest produkt"), czyli cały łańcuch **klik → Blazor (`@onclick`) → `Http.DeleteAsync` → API `DELETE` → SQLite → ponowny GET** domknięty end-to-end.
 
 ⚠️ **Sygnał na następny raz:** user o bloku `@code`: „**nie ma sensu jechać linijka po linijce jak ja tam nic nie rozumiem z tego @code**" — nie forsować przechodzenia całego bloku; czytanie wracać na MAŁYCH kawałkach (jedna metoda) i zawsze z widocznym efektem (klik → zmiana w tabeli).
 
-⏭️ **Następna sesja:** (1) odpalić i KLIKNĄĆ „Usuń" (test, czy przycisk działa end-to-end), (2) PUT (edycja) w API + formularz/edycja na stronie, (3) porządki szablonu (`Counter`/`Weather`).
+⏭️ **Następna sesja:** (1) PUT (edycja) w API + formularz na stronie (dodawanie produktu bez PowerShella), (2) porządki szablonu (`Counter`/`Weather`).
