@@ -154,3 +154,28 @@ Wyjaśnienie podane TOP-DOWN (o to poprosił: „jakoś bardziej sensownie wytł
 ⚠️ **Sygnał na następny raz:** user o bloku `@code`: „**nie ma sensu jechać linijka po linijce jak ja tam nic nie rozumiem z tego @code**" — nie forsować przechodzenia całego bloku; czytanie wracać na MAŁYCH kawałkach (jedna metoda) i zawsze z widocznym efektem (klik → zmiana w tabeli).
 
 ⏭️ **Następna sesja:** (1) PUT (edycja) w API + formularz na stronie (dodawanie produktu bez PowerShella), (2) porządki szablonu (`Counter`/`Weather`).
+
+---
+
+**DZIEŃ 8 (2026-09-24, czwartek) — FORMULARZ „DODAJ PRODUKT" NA STRONIE ✅ (POST z przeglądarki zamiast PowerShella).**
+
+Start: user: „hej! co dzisiaj proponujesz zrobić?" → status (git `Shop` czysty @ `662b806`) → 3 opcje → user wybrał **formularz „Dodaj produkt"** (znana piosenka POST przeniesiona na stronę).
+
+**Zagadka-czytanie (`Shop.Api\Controllers\ProductController.cs`, metoda `AddProduct`):** pytanie „skąd bierze `newProduct`, kto ją uruchamia?" → user: „uruchamia ją ASP.NET... musi wypełnić danymi nazwa, ilość, cena... `ExecuteNonQuery` to chyba jest ze zwrotu nie chce z bazy danych" = **3/4 trafione**: ✅ ASP.NET woła metodę sam (jak Blazor `OnInitializedAsync`), ✅ INSERT doda wiersz a `Id` nada baza, ✅ `ExecuteNonQuery` = „nic nie chcę z powrotem"; ❌ **luka: ciało żądania** — JSON wysyłany dotąd PowerShellem; ASP.NET czyta go i sam buduje obiekt `Product`, a potem podaje jako argument. To był pomost do dzisiejszej przeróbki.
+
+**Przeróbka `Shop\src\Shop.Web\Components\Pages\Products.razor` — 3 wstawki:**
+1. 3 pola w `@code` (schowek na wpisane wartości): `private string name = ""; private int quantity; private decimal price;`
+2. Formularz pod `<h1>Products</h1>`: karta Bootstrap + `row g-2` + 3× `<input @bind="…" placeholder="…" class="form-control" />` + `<button class="btn btn-primary" @onclick="AddProduct">Dodaj</button>` — **markup wklejony (lakier, nie materiał do ćwiczeń)**, wzorzec 1:1 z `Batches.razor` (Magazyn).
+3. Metoda `AddProduct` w `@code` — **ta sama piosenka co `DeleteProduct`**: `new Product { Name = name, Quantity = quantity, Price = price }` → `PostAsJsonAsync("http://localhost:5143/api/Product", newProduct)` → ponowny `GetFromJsonAsync` (odświeżenie tabelki).
+
+**🐛 Błędy wpisywania (asystent poprawił, build potem zielony):** `Price = price price` (wartość dwa razy) i `GetFromJsonAsync<List> < Product >>` (rozjechane nawiasy `<>` z odstępami). Reszta bloku wpisana poprawnie.
+
+**⚠️ `@bind` — wyjaśnienie NIE weszło (2 podejścia):** user: „nie rozumiem tego, 3 tezami wyjaśnij" → 3 tezy; potem „**1 nadal nie wiem o co chodzi**" → wyjaśnienie literalne (dwa kawałki pliku: `<input>` u góry + `private string name` w `@code`; `@bind` = jedyne połączenie; ciąg zdarzeń: piszesz → `name = "Myszka"` → `Name = name` → JSON) → user: „**dobra już nie tłumacz bo i tak nie rozumiem z tego połączenia bind i @code**". **Nie forsować dalej** — wrócić przy okazji przeróbki `@bind`, na działającym przykładzie, nie przez opis.
+
+**✅ TEST PRZESZEDŁ (user, Ctrl+F5):** log `Shop.Web` = `Now listening on: http://localhost:5107` + `GET http://localhost:5143/api/Product` → **200** (tabelka się wczytała). User wpisał `Myszka` / `3` / `49,99` → klik **Dodaj** → wiersz pojawił się **bez odświeżania strony**. Weryfikacja asystenta (`curl`): `[{"id":3,"name":"Myszka","quantity":3,"price":49.99}]` ✅ — cały łańcuch **formularz → `AddProduct` → POST → INSERT → tabelka** domknięty end-to-end (pierwszy raz produkt dodany z przeglądarki, nie z PowerShella).
+
+**Lekcja przy okazji:** `id: 3`, nie 1 — `AUTOINCREMENT` pamięta numery po usuniętych wierszach.
+
+⚠️ `Shop\database\shop.db` jest w repo (nie w `.gitignore`) → każdy POST/DELETE zmienia plik i wchodzi do commita.
+
+⏭️ **Następna sesja:** (1) **PUT + edycja na stronie** (przycisk „Zmień" w tabeli → pola wypełniają się wartościami wiersza), (2) porządki szablonu (`Counter`/`Weather`), (3) pozycja „Produkty" ma tymczasowo ikonę Weather, (4) `@bind` do wytłumaczenia jeszcze raz — na działającym formularzu.

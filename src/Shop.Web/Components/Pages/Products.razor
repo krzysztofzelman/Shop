@@ -6,6 +6,26 @@
 
 <h1>Products</h1>
 
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row g-2">
+            <div class="col-md-3">
+                <input @bind="name" placeholder="Name" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <input @bind="quantity" placeholder="Quantity" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <input @bind="price" placeholder="Price" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary" @onclick="AddProduct">Dodaj</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 @if (products == null)
 {
     <p><em>Loading...</em></p>
@@ -45,6 +65,22 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+    }
+
+    private string name = "";
+    private int quantity;
+    private decimal price;
+
+    private async Task AddProduct()
+    {
+        var newProduct = new Product
+        {
+            Name = name,
+            Quantity = quantity,
+            Price = price
+        };
+        await Http.PostAsJsonAsync("http://localhost:5143/api/Product", newProduct);
         products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
     }
 
