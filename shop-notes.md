@@ -184,3 +184,31 @@ Start: user: „hej! co dzisiaj proponujesz zrobić?" → status (git `Shop` czy
 
 1. **`DeleteProduct` — ile żądań?** User: „DELETE. `await Http.DeleteAsync(...)` to nas kieruje do API" ✅ (pierwsze żądanie trafione), ale ❌ **pominął DRUGIE** — ponowny GET odświeżający listę. Wyjaśnione: tabelka rysuje się z listy `products` trzymanej w pamięci strony, więc bez re-GET na ekranie zostałby usunięty wiersz. Sprawdzian transferowy o `AddProduct`: user sam ✅ **POST + GET** („oba skierowane do API"). Reguła jednym zdaniem: **linia z `Http.` = wycieczka na serwer; linia bez `Http.` = praca na miejscu** (np. `new Product { ... }` tylko buduje obiekt).
 2. **`OnInitializedAsync` — kto ją woła?** ❌ „strzelam" + wskazane **pole** `private List<Product>? products;` (nie metoda). Wyjaśnione: pola się nie „uruchamiają", tylko trzymają wartość (`?` = może być `null` → stąd `Loading`); metodę woła SAM Blazor, dlatego nie ma wywołania w markupie, a `protected override` = „moja wersja metody Blazora". ⚠️ **Pytanie było źle zadane** („poszukaj, gdzie ją wołają" — odpowiedzią jest BRAK): user „to co pierdolisz mi żebym szukał w `@code`?", „to nie podchwytliwe pytanie tylko prowadzenie pijanego na płot albo w krzaki". **Wniosek na przyszłość: ćwiczenie na czytanie ma kończyć się linią do pokazania palcem, nie nieobecnością.** Sesja zamknięta: „dobra starczy bo nie skumałem ostatniego w ogóle".
+
+---
+
+**DZIEŃ 9 (2026-09-26, sobota) — PUT (edycja) W API ✅ potwierdzony curlem; edycja na stronie — sesja przerwana w połowie.**
+
+Start: user: „co dzisiaj robimy?" → status (git `Shop` czysty @ `987e307`) → 3 opcje → user wybrał **edycję produktu (PUT)** — jedyna operacja CRUD, której brakowało.
+
+**Zagadka-czytanie (`MagazynApi\Controllers\BatchController.cs`, linie 65–66):** `[HttpPut("{id}")]` + `public void UpdateBatch(int id, Batch batch)` → pytanie „skąd `id`, a skąd `batch`?" → user: „**z bazy danych?**" ❌ (odwrotnie: te argumenty dopiero WPADAJĄ do bazy w linii `UPDATE`). Odpowiedź wprost: **`id` ← z ADRESU** (ten `{id}` w atrybucie, jak w `DeleteProduct`), **`batch` ← z CIAŁA żądania (JSON)** (jak `newProduct` w `AddProduct`). Dlatego PUT ma dwa argumenty — `PUT /api/Product/3` + `{ "name": ... }`.
+
+**Przeróbka 1/2 — `PUT` w API (`Shop.Api\Controllers\ProductController.cs`), user wpisał sam ✅:** metoda `UpdateProduct` = sklejenie `DeleteProduct` (id z adresu, `WHERE Id = @Id`) z `AddProduct` (trzy parametry). Metoda: `[HttpPut("{id}")]` → `public void UpdateProduct(int id, Product product)` → `CommandText = "UPDATE Products SET Name=@Name, Quantity=@Quantity, Price=@Price WHERE Id=@Id"` → 4× `AddWithValue` → `ExecuteNonQuery()`.
+
+**🐛 4 błędy wpisywania (user poprawił po wskazaniu, build zielony):** (1) `produkt` po polsku w nagłówku, a `product` w środku metody; (2) `_configuration` zamiast `_config` (nazwa pola z Magazynu); (3) **brakujący cudzysłów otwierający** przed `UPDATE` → **jedna kreska robi lawinę czerwonych linii** — kompilator uznaje, że tekst ciągnie się dalej i połyka kolejne linijki jako jeden string; (4) nazwa metody została `UpdateBatch` (z Magazynu). ⚠️ **Lekcja:** metoda o nazwie poprawnej, ale CUDZEJ nie jest w ogóle podkreślana — kompilator tego nie zgłosi. Czerwone podkreślenie = błąd składni/nieznana nazwa; zła nazwa = cisza, trzeba wyłapać samemu (inaczej niż literówka w nazwie, którą woła markup — Dzień 7).
+
+**✅ TEST PUT (user, PowerShell — pełna piosenka):** `curl.exe http://localhost:5143/api/Product` → `[{"id":3,"name":"Myszka","quantity":3,"price":49.99}]` → `Set-Content -Path body.json -Value '{"name":"Myszka","quantity":9,"price":59.99}'` → `curl.exe -X PUT http://localhost:5143/api/Product/3 -H "Content-Type: application/json" -d '@body.json'` → **cisza** (UPDATE = rozkaz, baza nie odpowiada — tak ma być) → GET = `[{"id":3,"name":"Myszka","quantity":9,"price":59.99}]` ✅. **`id` zostało 3** — cała różnica UPDATE vs INSERT: zmienia ISTNIEJĄCY wiersz, nie dokłada nowego.
+
+**Przeróbka 2/2 — edycja na stronie (`Shop.Web\Components\Pages\Products.razor`), CZĘŚCIOWO:**
+- ✅ `@code`: pole `private int editingId;` + metoda `private void EditProduct(Product product)` = `name = product.Name; quantity = product.Quantity; price = product.Price; editingId = product.Id;` (bierze wartości z KLIKNIĘTEGO wiersza i wkłada do pól strony — te same pola, które są spięte z okienkami u góry; `void`, zero `Http.` — praca na miejscu).
+- ⏭️ NIEZROBIONE: przycisk **„Zapisz"** + metoda `SaveProduct()` = `PutAsJsonAsync($"http://localhost:5143/api/Product/{editingId}", …)` + ponowny GET.
+
+**🐛 Błędy markupu (user) — dwa pouczające:** (1) przycisk „Zmień" wstawiony w **kartę formularza** zamiast w wiersz tabelki → tam nie istnieje zmienna `product` (żyje tylko w `@foreach`), więc nie ma czego zmieniać; (2) **brakujący `</div>`** → `error RZ9980: Unclosed tag 'div' with no matching end tag` — jeden niezamknięty `<div>` (pudełko) blokuje kompilację CAŁEGO pliku; (3) literówki `@oneclick` i `EditProduckt` — **ciche**: kompilator ich nie zgłasza, przycisk po prostu nic by nie robił. Asystent przeniósł przycisk do `<td>` Actions (obok „Usuń") i domknął `<div>`.
+
+**Weryfikacja:** `dotnet build src\Shop.Web\Shop.Web.csproj` = **0 błędów** ✅. ⚠️ **Klik „Zmień" w przeglądarce NIE potwierdzony** — do sprawdzenia na starcie następnej sesji.
+
+⚠️ **Ostrzeżenia (nie błędy) CS8600 ×5 w `Shop.Api`:** „Konwertowanie literału null… na nienullowalny typ" — `Program.cs(21)` + 4× `string connectionString = _config.GetConnectionString("ShopDb")` w `ProductController` (`GetConnectionString` może zwrócić `null`). Build przechodzi, apka działa; temat na kiedyś (`??`).
+
+**⏸️ PRZERWANIE SESJI (nie zniechęcenie do projektu):** user: „**nie mam dziś głowy do tego. ta choroba psa… czasami nie mam głowy a ni siły**" → wybrał opcję „domykam sam i commituję" (asystent poprawił markup, zbudował, zapisał notatki).
+
+⏭️ **Następna sesja (zacząć KRÓTKO, bez nowego materiału):** (1) Ctrl+F5 → klik **„Zmień"** przy wierszu → czy pola na górze wypełniają się danymi tego produktu; (2) przycisk **„Zapisz"** + metoda `SaveProduct()` (PUT + ponowny GET) — domknięcie edycji end-to-end; (3) dopiero potem porządki szablonu (`Counter`/`Weather`, ikona „Produkty").

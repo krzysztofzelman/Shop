@@ -23,7 +23,6 @@
             </div>
         </div>
     </div>
-
 </div>
 
 @if (products == null)
@@ -53,6 +52,7 @@ else
                     <td>@product.Price zł</td>
                     <td>
                         <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">Usuń</button>
+                        <button class="btn btn-warning btn-sm" @onclick="() => EditProduct(product)">Zmień</button>
                     </td>
                 </tr>
             }
@@ -60,29 +60,37 @@ else
     </table>
 }
 
-@code {
-    private List<Product>? products;
+    @code {
+        private List<Product>? products;
 
-    protected override async Task OnInitializedAsync()
-    {
-        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
-    }
+        protected override async Task OnInitializedAsync()
+        {
+            products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+        }
 
-    private string name = "";
-    private int quantity;
-    private decimal price;
+        private string name = "";
+        private int quantity;
+        private decimal price;
+        private int editingId;
 
-    private async Task AddProduct()
-    {
-        var newProduct = new Product
+        private async Task AddProduct()
+        {
+            var newProduct = new Product
         {
             Name = name,
             Quantity = quantity,
             Price = price
         };
-        await Http.PostAsJsonAsync("http://localhost:5143/api/Product", newProduct);
-        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
-    }
+            await Http.PostAsJsonAsync("http://localhost:5143/api/Product", newProduct);
+            products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+        }
+        private void EditProduct(Product product)
+        {
+            name = product.Name;
+            quantity = product.Quantity;
+            price = product.Price;
+            editingId = product.Id;
+        }
 
     private async Task DeleteProduct(int id)
     {

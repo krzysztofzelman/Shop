@@ -66,4 +66,20 @@ public class ProductController : ControllerBase
         }
     }
 
+    [HttpPut("{id}")]
+    public void UpdateProduct(int id, Product product)
+    {
+        string connectionString = _config.GetConnectionString("ShopDb");
+        using (SqliteConnection connection = new SqliteConnection(connectionString))
+        {
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = "UPDATE Products SET Name=@Name, Quantity=@Quantity, Price=@Price WHERE Id=@Id";
+            command.Parameters.AddWithValue("@Id", id);
+            command.Parameters.AddWithValue("@Name", product.Name);
+            command.Parameters.AddWithValue("@Quantity", product.Quantity);
+            command.Parameters.AddWithValue("@Price", product.Price);
+            command.ExecuteNonQuery();
+        }
+    }
 }
