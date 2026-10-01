@@ -212,3 +212,29 @@ Start: user: „co dzisiaj robimy?" → status (git `Shop` czysty @ `987e307`) �
 **⏸️ PRZERWANIE SESJI (nie zniechęcenie do projektu):** user: „**nie mam dziś głowy do tego. ta choroba psa… czasami nie mam głowy a ni siły**" → wybrał opcję „domykam sam i commituję" (asystent poprawił markup, zbudował, zapisał notatki).
 
 ⏭️ **Następna sesja (zacząć KRÓTKO, bez nowego materiału):** (1) Ctrl+F5 → klik **„Zmień"** przy wierszu → czy pola na górze wypełniają się danymi tego produktu; (2) przycisk **„Zapisz"** + metoda `SaveProduct()` (PUT + ponowny GET) — domknięcie edycji end-to-end; (3) dopiero potem porządki szablonu (`Counter`/`Weather`, ikona „Produkty").
+
+---
+
+**DZIEŃ 10 (2026-10-01, czwartek) — POWRÓT PO PRZERWIE (luka 2026-09-27 → 2026-10-01); EDYCJA PRODUKTU NA STRONIE DOMKNIĘTA ✅ (jeden przycisk + „Anuluj").**
+
+Start: user: „siema! co dzisiaj robimy? wiem miałem przerwe" (powodu nie podał — nie dopytywać). Git `Shop` czysty @ `36c1f33`. Cel dnia: dokończyć przeróbkę 2/2 z Dnia 9 (bez nowego materiału).
+
+**Krok 0 — test zaległy z Dnia 9 ✅:** klik „Zmień" **działa** — pola `Name`/`Quantity`/`Price` wypełniają się danymi klikniętego wiersza (+ zapamiętane `editingId`).
+
+**🔎 ODKRYCIE USERA (punkt dnia):** po „Zmień" kliknął „Dodaj" → powstał **duplikat** („dodaje nowy produkt… numery sie dubluja"). Pytanie: „troche nie powinno tak być, może jakieś powiadomienie? czy jak widzisz rozwiązanie?" → **diagnoza wprost:** „Dodaj" = `AddProduct` = **POST = INSERT = zawsze nowy wiersz** — to nie usterka, to definicja tego guzika; duplikat bierze się z tego, że po „Zmień" na ekranie dalej stoi „Dodaj".
+
+**Rekomendacja (Poziomy, nie lista wyboru):** **Poziom 1 = jeden przycisk, który sam wie, co robić** (znana piosenka z Magazynu): `if (editingId == 0)` → POST, inaczej → PUT + przycisk „Anuluj" — pomyłka staje się NIEMOŻLIWA, bo „Dodaj" w trybie edycji nie istnieje. **Poziom 2 = komunikat** („Dodano/Zapisano") — dodatek, tylko INFORMUJE, nie blokuje. **Odrzucone jawnie:** zakaz dwóch produktów o tej samej nazwie (w sklepach się tego nie stosuje — ta sama nazwa bywa legalna, różne warianty).
+
+**Przeróbka DONE ✅ (`Shop.Web\Components\Pages\Products.razor`):**
+- **Markup:** zamiast dwóch guzików **jeden**, który zmienia napis: `<button class="btn btn-primary" @onclick="AddProduct">@(editingId == 0 ? "Dodaj" : "Zapisz")</button>` + `<button class="btn btn-secondary" @onclick="Cancel">Anuluj</button>`. Wyjaśnienie ternary jedną linijką: `@(warunek ? "gdy prawda" : "gdy fałsz")`.
+- **`@code`:** `SaveProduct()` **usunięta** — cały PUT wjechał do `AddProduct` jako `if (editingId == 0) { POST } else { PUT }` + jedna linia GET na końcu. Dodana `private void Cancel()` = `name = ""; quantity = 0; price = 0; editingId = 0;` (0 w `editingId` = „wracam do trybu dodawania" → guzik sam wraca na „Dodaj").
+
+**🐛 Ciche błędy wpisania (wykryte przez `read_file`, user poprawił):** (1) `onclick="SaveProduct"` **bez `@`** → Blazor czyta atrybut jako zwykły HTML i ignoruje → **guzik martwy, zero błędu** (sąsiad „Dodaj" miał `@onclick`, dlatego działał); (2) `PutAsJsonAsync("http://localhost:5143/api/Product{editingId}", …)` **bez `$` i bez `/`** → literalny tekst zamiast podstawienia → PUT na nieistniejący adres → 404.
+
+**💥 WYJĄTEK (odwrotność cichego błędu — runtime krzyczy):** po nieudanej podmianie zostały w `AddProduct` resztki starej metody: `GetFromJsonAsync("http//loclalhost:5143/api/Prtoduct")` (brak `:` po `http`, literówki `loclalhost`/`Prtoduct`) + zbędny POST → `UriFormatException` → konsola przeglądarki: **„There was an unhandled exception on the current circuit, so this circuit will be terminated"** = strona traci połączenie z serwerem. **Lekcja:** tekst w `"..."` kompilator widzi jako zwykły napis i nie sprawdza, czy to sensowny URL — literówka w adresie wychodzi dopiero przy próbie połączenia. 3 próby samodzielnej naprawy (user usuwał złą linię) → „**pierdole. bo mnie rozjebie zaraz wez to popraw**" → asystent poprawił na wyraźną delegację.
+
+**⚠️ ŚCIANA SŁOWNIKOWA (`async`/`await`/`Task`/`void`):** user: „pojebane to ejst za duzo jest tego. ja tam nie wiem co to ejsrt aweit i void pierdoli mi sie to. async itd. za duzo ti nei wiem i przez to robi sie chaos". **Co zadziałało:** ściąga **4 wiersze, bez kodu i bez lekcji** — `void` = nic nie oddaje; `async` = „może czekać"; `await` = „poczekaj, aż serwer odpowie" (przy `Http.`); `Task` = odda wynik po czasie. Reguła-1-zdanie: metoda z żądaniem ma `async` + `await`; oddaje coś → `Task<coś>`, nie oddaje → `Task`, a **`void` NIGDY z `await`** (dlatego kontroler API ma `void`, a metody strony `async Task`). Powiedziane wprost: to najtrudniejsze 4 słowa w C#, wchodzą z czasem, nie z tłumaczenia.
+
+**✅ TEST KOŃCOWY (user):** „widzę że działa ok" — „Zmień" → guzik „Zapisz" → PUT zmienia istniejący wiersz, lista nie rośnie; „Anuluj" czyści pola i wraca do „Dodaj" (do sprawdzenia przy okazji). ⚠️ Zduplikowane produkty z testów zostały w bazie — user ma je usunąć przyciskiem „Usuń". ⚠️ `database\shop.db` w repo → zmiany z testów wchodzą do commita.
+
+⏭️ **Następna sesja:** (1) **porządki szablonu** — `Counter`/`Weather` do usunięcia, pozycja „Produkty" ma tymczasowo ikonę Weather; (2) ewentualnie **Poziom 2** — komunikat po zapisie; (3) `@bind` — WYŁĄCZNIE na działającym formularzu (przeróbka), nie opisem; (4) „dwa żądania w jednej metodzie" (POST/PUT + GET) — ćwiczyć na LINII w kodzie. Start: Ctrl+F5 = API 5143 + strona 5107.

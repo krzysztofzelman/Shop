@@ -19,7 +19,8 @@
                 <input @bind="price" placeholder="Price" class="form-control" />
             </div>
             <div class="col-md-3">
-                <button class="btn btn-primary" @onclick="AddProduct">Dodaj</button>
+                <button class="btn btn-primary" @onclick="AddProduct">@(editingId == 0 ? "Dodaj" : "Zapisz" )</button>
+                <button class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
             </div>
         </div>
     </div>
@@ -60,41 +61,57 @@ else
     </table>
 }
 
-    @code {
-        private List<Product>? products;
+@code {
+    private List<Product>? products;
 
-        protected override async Task OnInitializedAsync()
-        {
-            products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
-        }
+    protected override async Task OnInitializedAsync()
+    {
+        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+    }
 
-        private string name = "";
-        private int quantity;
-        private decimal price;
-        private int editingId;
+    private string name = "";
+    private int quantity;
+    private decimal price;
+    private int editingId;
 
-        private async Task AddProduct()
-        {
-            var newProduct = new Product
+    private async Task AddProduct()
+    {
+        var newProduct = new Product
         {
             Name = name,
             Quantity = quantity,
             Price = price
         };
-            await Http.PostAsJsonAsync("http://localhost:5143/api/Product", newProduct);
-            products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
-        }
-        private void EditProduct(Product product)
+        if (editingId == 0)
         {
-            name = product.Name;
-            quantity = product.Quantity;
-            price = product.Price;
-            editingId = product.Id;
+            await Http.PostAsJsonAsync("http://localhost:5143/api/Product", newProduct);
         }
+        else
+        {
+            await Http.PutAsJsonAsync($"http://localhost:5143/api/Product/{editingId}", newProduct);
+        }
+
+        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+    }
+    private void EditProduct(Product product)
+    {
+        name = product.Name;
+        quantity = product.Quantity;
+        price = product.Price;
+        editingId = product.Id;
+    }
 
     private async Task DeleteProduct(int id)
     {
         await Http.DeleteAsync($"http://localhost:5143/api/Product/{id}");
         products = await Http. GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
     }
+    private void Cancel()
+    {
+        name = "";
+        quantity = 0;
+        price = 0;
+        editingId = 0;
+    }
 }
+ 
