@@ -26,4 +26,18 @@ using (SqliteConnection connection = new SqliteConnection(cs))
     command.CommandText = "CREATE TABLE IF NOT EXISTS Products (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Quantity INTEGER, Price REAL)";
     command.ExecuteNonQuery();
 }
+using (SqliteConnection connection = new SqliteConnection (cs))
+{
+    connection.Open();
+    SqliteCommand command = connection.CreateCommand();
+    command.CommandText = "CREATE TABLE IF NOT EXISTS Orders (Id INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT)";
+    command.ExecuteNonQuery();
+}
+using (SqliteConnection connection = new SqliteConnection(cs))
+{
+    connection.Open();
+    SqliteCommand command = connection.CreateCommand();
+    command.CommandText = "CREATE TABLE IF NOT EXISTS OrderItems (Id INTEGER PRIMARY KEY AUTOINCREMENT, OrderId INTEGER, ProductId INTEGER, Quantity INTEGER, Price REAL)";
+    command.ExecuteNonQuery();
+}
 app.Run();

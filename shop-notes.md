@@ -258,3 +258,25 @@ Start: user „czesc! działamy cos dzis dalej?" → status (repo `Shop` czyste 
 ⚠️ `database\shop.db` zmienił się od testów edycji (plik jest w repo → wchodzi do commita).
 
 ⏭️ **Następna sesja (do wyboru):** (1) **Poziom 2** — komunikat „Dodano/Zapisano zmiany" po zapisie (dodatek, niczego nie blokuje) + sprzątnięcie zduplikowanych produktów z bazy przyciskiem „Usuń"; (2) **zamówienia (relacja 1-wiele)** — pierwszy krok w stronę prawdziwego e-commerce; (3) `@bind` — wyłącznie na działającym formularzu; (4) „dwa żądania w jednej metodzie" (POST/PUT + GET) — ćwiczyć na LINII w kodzie. Start: Ctrl+F5 = API 5143 + strona 5107.
+
+---
+
+**DZIEŃ 11 cd. (2026-10-02, piątek) — ETAP 1 RUSZYŁ: modele zamówień + dwie tabele ✅.**
+
+Po zamknięciu Dnia 11 (commit `a7e094f`) user zapytał: „etap 1 zamówienia możemy jeszcze dziś zrobić?" → asystent uczciwie: **całego Etapu 1 nie w jednej sesji** (nowy koncept + tabela + kontroler + strona; samo „kontroler GET+POST" zajęło 2 sesje w Dniach 4–5), propozycja: krok 1 = ustalenie kształtu danych + model. User poprosił o **opis słowami przed kodem**: „możesz prościej opisać co będzie robić ta funkcja i jaki ma cel? później przejdziemy do pisania kodu".
+
+**Opis dany bez kodu (i przyjęty):** cel = „co ktoś kupił, ile i kiedy"; ekran = lista zamówień → po wejściu pozycje; części = **nagłówek + pozycje i dlaczego DWIE** (jedno zamówienie ma wiele pozycji = **relacja 1-wiele**); czego na razie NIE ma: koszyka, klientów, logowania. User: „ok rozumiem zacznijmy coś działać".
+
+**Krok 1 ✅ modele (`Shop\src\Shop.Shared`):** `Order.cs` = `Id` + `Date` (`DateTime`); `OrderItem.cs` = `Id`, `OrderId`, `ProductId`, `Quantity`, `Price` (`decimal`). User wpisał sam przez kreator VS → **csproj czysty** (brak pułapki `Compile Remove`). Jedna literówka złapana `read_file`: `PorductId` → `ProductId` (asystent wskazał, user poprawił).
+
+**Pytania usera o `DateTime` (2×, najpierw krótko):** „.NET wie co to jest DateTime?" oraz „skąd bierze datę — z internetu? systemu? strony Microsoftu?" → odpowiedź: `DateTime` = **wbudowany typ frameworku** (rodzina `int`/`string`/`decimal`); `DateTime.Now` czyta **zegar systemowy komputera, na którym działa aplikacja** — żadnego zapytania do sieci; zegar synchronizuje w tle sam Windows; na VPS data = zegar VPS.
+
+**Krok 2 ✅ tabele (`Shop\src\Shop.Api\Program.cs`):** dołożone POD blokiem `Products`, PRZED `app.Run();` — dwa bloki tej samej piosenki, inny tylko `CommandText`: `Orders (Id INTEGER PRIMARY KEY AUTOINCREMENT, Date TEXT)` i `OrderItems (Id INTEGER PRIMARY KEY AUTOINCREMENT, OrderId INTEGER, ProductId INTEGER, Quantity INTEGER, Price REAL)`. Najpierw user nie wiedział, gdzie wpisać („**tu mam coś wpisać?**") → działa „przed → po" z całym ogonem pliku.
+
+**🐛 8 literówek w 2 blokach — build wyłapał GŁOŚNO:** `new SqliteConnection Connection(cs)` (**CS1526** + CS1026 + CS1002 + CS1022, l. 36), `new SqliteConnectionConnection(cs)`, `connecction.CreateComand()`, `command.Commandtext`, `connection.open()`, `IF EXISTS` (zamiast `IF NOT EXISTS`), `AUTOINRECEMNT`, `INTEGR`, zdublowana kolumna `Quantity`. Część user poprawił po liście punktowej (blok → zły fragment → ma być), resztę (4 miejsca) — **na wyraźną delegację „możesz to już za mnie poprawić?"** — asystent (`edit`). **Kontrast wzorca:** w `.cs` błędy są **GŁOŚNE** (kompilator mówi co i gdzie → `feedback/csharp-code-build-catches-typos.md`), w `.razor`/adresie URL/nazwie właściwości **CICHE** (`→ feedback/silent-errors-verify-by-reading.md`) — dlatego po bloku `.cs` ZAWSZE build, nie tylko czytanie. Przypomniane: C# wrażliwy na wielkość liter, SQL nie (dawne `DELete forM Products` działało).
+
+**Lekcja SQL na JEGO linii** (user: „możesz mi wytłumaczyć te komendy do SQL"): rozbiór token po tokenie + mapowanie `INTEGER`↔`int`, `TEXT`↔`string`/`DateTime`, `REAL`↔`decimal`; `PRIMARY KEY` = unikalny numer wiersza, `AUTOINCREMENT` = baza sama nada numer → przy `INSERT` nie podaje się `Id` (`→ feedback/sql-create-table-types.md`).
+
+**✅ STAN PO SESJI:** `dotnet build Shop.Api` = **0 błędów** (5 znanych warningów CS8600 z `GetConnectionString` — stare, nie ruszamy). Tabele są w kodzie, ale **fizycznie powstaną dopiero przy najbliższym Ctrl+F5** (API nie był restartowany). Zmienione: `Shop.Shared\Order.cs`, `Shop.Shared\OrderItem.cs`, `Shop.Api\Program.cs`.
+
+⏭️ **Następna sesja:** krok 3 = **`OrderController` z `GET`** (kopia `ProductController` + `Date`), potem `POST`, potem strona `/orders`. Przy okazji sprawdzić, czy `shop.db` dostał tabele `Orders`/`OrderItems`.
