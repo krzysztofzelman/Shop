@@ -238,3 +238,23 @@ Start: user: „siema! co dzisiaj robimy? wiem miałem przerwe" (powodu nie poda
 **✅ TEST KOŃCOWY (user):** „widzę że działa ok" — „Zmień" → guzik „Zapisz" → PUT zmienia istniejący wiersz, lista nie rośnie; „Anuluj" czyści pola i wraca do „Dodaj" (do sprawdzenia przy okazji). ⚠️ Zduplikowane produkty z testów zostały w bazie — user ma je usunąć przyciskiem „Usuń". ⚠️ `database\shop.db` w repo → zmiany z testów wchodzą do commita.
 
 ⏭️ **Następna sesja:** (1) **porządki szablonu** — `Counter`/`Weather` do usunięcia, pozycja „Produkty" ma tymczasowo ikonę Weather; (2) ewentualnie **Poziom 2** — komunikat po zapisie; (3) `@bind` — WYŁĄCZNIE na działającym formularzu (przeróbka), nie opisem; (4) „dwa żądania w jednej metodzie" (POST/PUT + GET) — ćwiczyć na LINII w kodzie. Start: Ctrl+F5 = API 5143 + strona 5107.
+
+---
+
+**DZIEŃ 11 (2026-10-02, piątek) — PORZĄDKI SZABLONU ✅ (krótka sesja, zero nowych konceptów).**
+
+Start: user „czesc! działamy cos dzis dalej?" → status (repo `Shop` czyste @ `f786872`, Dzień 10 zamknięty) → 3 opcje → user wybrał **A: porządki szablonu** („ja bym zrobił A ale pierw jakos umówił co ostatnio robilisz małe przypomnienie") → najpierw krótkie PRZYPOMNIENIE Dnia 10 na jego kodzie (`Products.razor`: jeden guzik `@(editingId == 0 ? "Dodaj" : "Zapisz")`, `EditProduct` → pola + `editingId`, `AddProduct` z `if/else` POST/PUT, `Cancel`), dopiero potem praca. ⚠️ Wzorzec potwierdzony: **recap na starcie jest potrzebny** (user sam o niego prosi) — na realnych linijkach pliku, nie ogólnie.
+
+**Krok 1 ✅ — menu (`Shop.Web\Components\Layout\NavMenu.razor`):** user usunął **dwa całe bloki** `<div class="nav-item px-3">…</div>` (te z `href="counter"` i `href="weather"`) → zostały 2 pozycje: Home + Produkty.
+
+**Krok 2 ✅ — pliki stron:** user usunął z `Components\Pages` pliki `Counter.razor` i `Weather.razor` (prawy klik → Usuń). W `Pages` zostały: `Home.razor`, `Products.razor`, `Error.razor`, `NotFound.razor`. Build bez zmian (nic ich już nie używało).
+
+**Krok 3 ✅ — ikona „Produkty" (koszyk):** ikony w tym szablonie to SVG wklejone w `NavMenu.razor.css` („lakier"), więc nową klasę `.bi-cart-fill-nav-menu` **dodał asystent**, a user zrobił jedną podmianę w `NavMenu.razor`: `bi-list-nested-nav-menu` → `bi-cart-fill-nav-menu` (linia „Produkty"). Wpisane **poprawnie za pierwszym razem** ✅.
+
+**⚠️ ZAMIESZANIE — plik `Error.razor` wzięty za awarię:** user: „**CO TO ZA PLIK I CAŁY KOD Z TYM ERROR?**" (uprzednio: „w tej lokalizacji jest ten plik") — zobaczył w `Pages` plik `Error.razor` i odczytał **nazwę pliku** jako błąd jego projektu. Wyjaśnione WPROST: `Error.razor` (adres `/Error`, strona „gdy coś padnie"), `NotFound.razor` (404; **podpięty w `Routes.razor`** — `NotFoundPage="typeof(Pages.NotFound)"`, więc musi zostać) i `ReconnectModal.razor` (okienko „łączę ponownie…") to **pliki szablonu**, nie jego kod i nie awaria. Dowód: `dotnet build Shop.Web` = **0 błędów**, porty 5107/5143 wolne (brak blokady starych instancji). Potem user poprosił „z grubsza" o omówienie tego kodu → rozbiór **top-down w 3 częściach**: (1) `@page "/Error"` = adres + `@using System.Diagnostics` = dołożenie narzędzi; (2) markup — `PageTitle`, `<h1>`/`<h2>` = napisy, `@if (ShowRequestId)` = decyzja, czy pokazać numer żądania; (3) `@code` = schowek — pola (`string? RequestId`), `ShowRequestId => !string.IsNullOrEmpty(RequestId)` (`bool`, `!` = zaprzeczenie), `OnInitialized` (woła Blazor, `void`, `=>` = skrót bez klamer), `[CascadingParameter] HttpContext` = kod szablonu. ⚠️ **Lekcja: nazwa pliku („Error") ≠ błąd w projekcie** — przy „co to za plik z error" najpierw sprawdzić build i porty, potem tłumaczyć rolę pliku.
+
+**✅ TEST (user, Ctrl+F5):** menu = **2 pozycje** (Home + Produkty z ikoną koszyka), edycja działa; „Anuluj" → „**tak to dziala i działało**" — domknięta ostatnia niepotwierdzona rzecz z Dnia 10 ✅.
+
+⚠️ `database\shop.db` zmienił się od testów edycji (plik jest w repo → wchodzi do commita).
+
+⏭️ **Następna sesja (do wyboru):** (1) **Poziom 2** — komunikat „Dodano/Zapisano zmiany" po zapisie (dodatek, niczego nie blokuje) + sprzątnięcie zduplikowanych produktów z bazy przyciskiem „Usuń"; (2) **zamówienia (relacja 1-wiele)** — pierwszy krok w stronę prawdziwego e-commerce; (3) `@bind` — wyłącznie na działającym formularzu; (4) „dwa żądania w jednej metodzie" (POST/PUT + GET) — ćwiczyć na LINII w kodzie. Start: Ctrl+F5 = API 5143 + strona 5107.
