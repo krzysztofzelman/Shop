@@ -34,5 +34,18 @@ return orders;
     
     }
 
+    [HttpPost]
+    public void AddOrder(Order newOrder)
+    {
+        string connectionString = _config.GetConnectionString("ShopDb");
+        using (SqliteConnection connection = new SqliteConnection(connectionString))
+        {
+            connection.Open();
+            SqliteCommand command = connection.CreateCommand();
+            command.CommandText = "INSERT INTO Orders (Date) VALUES (@Date)";
+            command.Parameters.AddWithValue ("@Date", newOrder.Date);          
+            command.ExecuteNonQuery();
+        }
+     }
+
 }
-  

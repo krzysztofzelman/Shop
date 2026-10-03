@@ -308,3 +308,17 @@ Rundę 2 user poprawił sam ✅; finał = plik **1:1 wzorzec** `GetProducts` (ko
 **Zmienione:** nowy `Shop\src\Shop.Api\Controllers\OrderController.cs` — jedyny plik w commicie (`database\shop.db` bez zmian, test był tylko czytający).
 
 ⏭️ **Następna sesja:** `POST` w `OrderController` (zapis zamówienia — INSERT = rozkaz → `void` + `ExecuteNonQuery`, wzór `AddProduct`), potem strona `/orders`.
+
+---
+
+**DZIEŃ 12 cd. (2026-10-03, sobota) — ETAP 1 KROK 4: `POST` zamówienia ✅.**
+
+**Krok 4 — jak powstał:** user wkleił do `OrderController.cs` blok `[HttpPost]` **1:1 z `AddProduct`** → zostały `AddProduct`, `Product newProduct`, `INSERT INTO Products (Name, Quantity, Price)`. To **cichy błąd**: kompiluje się (typ `Product` istnieje, SQL to zwykły string), ale zapisałby do tabeli `Products`, nie `Orders`. Pięć podmian: nazwa metody, typ parametru, SQL, parametry, ciało. User zrobił sam cztery (`AddOrder`, `Order newOrder`, `INSERT INTO Orders (Date) VALUES (@Date)`), a w ostatniej linii napisał `command.Parameters.@Date = newOrder.Date` → **CS1061** (`Parameters` to kolekcja, nie ma pola `@Date`) + brak `;`. Poprawka na wzór `AddProduct`: `command.Parameters.AddWithValue("@Date", newOrder.Date);`.
+
+**Lekcja z C#:** `GetConnectionString(...)` może zwrócić `null` → **CS8600** to ostrzeżenie (zielone), nie błąd — build ma 0 błędów i 7 warningów `CS8600` (2 nowe w `OrderController.cs`: l. 16 GET, l. 40 POST). Nie ruszamy.
+
+**✅ TEST (user, Ctrl+F5):** `POST` przez `Invoke-RestMethod` → **cisza = sukces** (`void`, rozkaz do bazy); potem `GET http://localhost:5143/api/Order` → **`id 1, date 2026-10-03T00:00:00`** = wiersz w bazie. `T00:00:00` = normalne (data bez godziny → format ISO, północ).
+
+**Zmienione:** `Shop\src\Shop.Api\Controllers\OrderController.cs` + `database\shop.db` (wiersz testowy).
+
+⏭️ **Następna sesja:** strona `/orders` (lista zamówień: nr | data | razem), potem wejście w zamówienie = pozycje.
