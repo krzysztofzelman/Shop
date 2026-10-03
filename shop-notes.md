@@ -280,3 +280,31 @@ Po zamknięciu Dnia 11 (commit `a7e094f`) user zapytał: „etap 1 zamówienia m
 **✅ STAN PO SESJI:** `dotnet build Shop.Api` = **0 błędów** (5 znanych warningów CS8600 z `GetConnectionString` — stare, nie ruszamy). Tabele są w kodzie, ale **fizycznie powstaną dopiero przy najbliższym Ctrl+F5** (API nie był restartowany). Zmienione: `Shop.Shared\Order.cs`, `Shop.Shared\OrderItem.cs`, `Shop.Api\Program.cs`.
 
 ⏭️ **Następna sesja:** krok 3 = **`OrderController` z `GET`** (kopia `ProductController` + `Date`), potem `POST`, potem strona `/orders`. Przy okazji sprawdzić, czy `shop.db` dostał tabele `Orders`/`OrderItems`.
+
+---
+
+**DZIEŃ 12 (2026-10-03, sobota) — ETAP 1 KROK 3: `OrderController` z `GET` ✅.**
+
+Start: repo czyste @ `2352e53`; w `Controllers` był tylko `ProductController.cs`, więc krok 3 = nowy kontroler z jedną metodą czytającą. Sesja w rytmie: krótkie czytanie własnego kodu → jedna przeróbka.
+
+**Czytanie `GetProducts()` (rozbiór bloku `SELECT`, bez nowych konceptów):** `command.CommandText = "SELECT …"` = **tekst listu do bazy** (pytanie); `ExecuteReader()` = wyślij pytanie i odbierz **tabelkę**; `while (reader.Read())` = czytaj **wiersz po wierszu**, aż `Read()` powie „false — koniec"; `reader["Id"]` = wartość z kolumny **po nazwie** w bieżącym wierszu, a `Convert.ToInt32/ToDecimal` = przepisanie na C#-owy typ (baza oddaje „coś" nieznanego typu). User zapytał „**czyli select to co? co to za komenda?**" → tabelka 4 komend SQL skotwiczona na JEGO metodach: `SELECT` = pokaż dane → baza ODSYŁA → `ExecuteReader` (`GetProducts`); `INSERT`/`UPDATE`/`DELETE` = rozkaz → cisza → `ExecuteNonQuery` (`AddProduct`/`UpdateProduct`/`DeleteProduct`). Zasada-1-zdanie: „czy baza ma mi coś ODSŁAĆ?".
+
+**⚠️ WPADKI KOMUNIKACYJNE (asystent) — oba warianty pytań odrzucone:** (1) pytanie kontrolne na koniec rozbioru → „**nie zapamiętam raczej. nie rozumiem tego pytania co mi na końcu napisałeś**"; (2) pytanie zadane userowi, na które asystent sam odpowiedział w tej samej wiadomości → „**a ty mi na pytanie przez siebie samego zadane odpowiadasz. halo!!!**". Do tego „co to za litania?" po zbyt długim wyjaśnieniu. **Wniosek:** przy tłumaczeniu NIE zadawać pytań (chyba że naprawdę czekamy na odpowiedź) — podawać odpowiedź WPROST i zamykać JEDNĄ numerowaną czynnością.
+
+**Krok 3 — plik:** Solution Explorer → `Shop.Api` → `Controllers` → prawy klik → Add → Class… → `OrderController`. Kreator VS wygenerował szablon `namespace Shop.Api.Controllers { public class Class { } }` → **`Shop.Api.csproj` pozostał CZYSTY** ✅ (brak pułapki `Compile Remove`, wariant `.cs`). Docelowo plik **bez namespace** — tak samo jak `ProductController.cs`.
+
+**User PRZEPISAŁ kod ręcznie** (zamiast wkleić) → 2 rundy literówek, wszystkie wyłapane `read_file` + lista „numer → ma być":
+- runda 1: `_confing` (→ `_config`), `public class orderController` (→ `OrderController`; mała litera = `OrderController(...)` niżej przestaje być konstruktorem), `_CONFIG.gETcONNECTIONsTRING` (→ `_config.GetConnectionString`), `new SqliteConnectionString(...)` (→ `new SqliteConnection(...)`), `[Route("api / [controller]")]` (spacja), **brak `{` po sygnaturze `GetOrders()`** → całe ciało „wypadało" poza metodę i końcowa `}` nie miała pary (czerwona klamra w VS);
+- runda 2: `_config.GetConnectionString"ShopDb")` (brak `(`), `connectionCreateCommand()` (brak kropki → `connection.CreateCommand()`), `while (reader.Reader())` (→ `reader.Read()` — `Reader` to typ `SqliteDataReader`, a wiersz czyta metoda `Read()`).
+
+Rundę 2 user poprawił sam ✅; finał = plik **1:1 wzorzec** `GetProducts` (kosmetyka: pozjeżdżane wcięcia, brak spacji w `List<Order>GetOrders()`).
+
+**Kod = kopia `GetProducts` z 5 podmianami:** nazwa klasy/konstruktora, `GetProducts`→`GetOrders`, `List<Product>`/`products`→`List<Order>`/`orders`, SQL `SELECT Id, Name, Quantity, Price FROM Products` → `SELECT Id, Date FROM Orders`, `new Product {…}` → `new Order {…}`. Jedyna nowa rzecz: **`Convert.ToDateTime(reader["Date"])`** — w bazie data leży jako tekst (`TEXT`), a typ C# to `DateTime`, więc trzeba ją przepisać.
+
+**✅ BUILD (user, Ctrl+Shift+B):** „Kompilacja: sukces — 3, niepowodzenie — 0" → **0 błędów**; wyszło 5 znanych **warningów CS8600** (m.in. `OrderController.cs(16,…)` — identyczne jak `ProductController.cs(19,…)`, czyli nowy kod to ta sama piosenka). Ostrzeżenia nie blokują.
+
+**✅ TEST (user, Ctrl+F5):** `http://localhost:5143/api/Order` → **`[]`** = krok 3 działa. Pusta lista to poprawny wynik: `SELECT` zwraca 0 wierszy, bo w tabeli `Orders` nie ma jeszcze żadnego zamówienia (gdyby tabeli nie było, poleciałby błąd serwera, nie `[]`). ⚠️ Samo `http://localhost:5143/` = **404 z założenia** (API odpowiada tylko pod `/api/...`).
+
+**Zmienione:** nowy `Shop\src\Shop.Api\Controllers\OrderController.cs` — jedyny plik w commicie (`database\shop.db` bez zmian, test był tylko czytający).
+
+⏭️ **Następna sesja:** `POST` w `OrderController` (zapis zamówienia — INSERT = rozkaz → `void` + `ExecuteNonQuery`, wzór `AddProduct`), potem strona `/orders`.
