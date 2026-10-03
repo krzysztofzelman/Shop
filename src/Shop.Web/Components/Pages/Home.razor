@@ -2,27 +2,33 @@
 
 <PageTitle>Shop</PageTitle>
 
-<div class="p-5 mb-4 bg-light rounded-3">
-    <h1 class="display-5 fw-bold">Shop</h1>
-    <p class="lead">@Lang.T("ShopLead")</p>
-    <a class="btn btn-primary btn-lg" href="/products">@Lang.T("Products")</a>
-</div>
+<section class="hero rounded-4 mb-5">
+    <h1 class="display-4 fw-bold mb-3">Shop</h1>
+    <p class="lead mb-4">@Lang.T("ShopLead")</p>
+    <a class="btn btn-light btn-lg rounded-pill px-4 fw-semibold" href="/products">@Lang.T("Products")</a>
+</section>
 
 <div class="row g-4">
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-body">
-                <h5 class="card-title">@Lang.T("Products")</h5>
-                <p class="card-text">@Lang.T("ProductsCardText")</p>
-                <a class="btn btn-outline-primary" href="/products">@Lang.T("Open")</a>
+    <div class="col-md-6 col-lg-4">
+        <a class="card card-product h-100 text-decoration-none" href="/products">
+            <div class="card-img-placeholder placeholder-blue d-flex align-items-center justify-content-center">
+                <span class="display-4">🛒</span>
             </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card h-100">
             <div class="card-body">
-                <h5 class="card-title">@Lang.T("Orders")</h5>
-                <p class="card-text">@Lang.T("OrdersCardText")</p>
+                <h5 class="card-title mb-1">@Lang.T("Products")</h5>
+                <p class="card-text text-muted small mb-3">@Lang.T("ProductsCardText")</p>
+                <span class="btn btn-primary btn-sm rounded-pill px-3">@Lang.T("Open")</span>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-product h-100">
+            <div class="card-img-placeholder placeholder-purple d-flex align-items-center justify-content-center">
+                <span class="display-4">📦</span>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title mb-1">@Lang.T("Orders")</h5>
+                <p class="card-text text-muted small mb-0">@Lang.T("OrdersCardText")</p>
             </div>
         </div>
     </div>

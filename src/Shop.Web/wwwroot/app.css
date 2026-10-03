@@ -58,3 +58,33 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+.hero {
+    background: linear-gradient(120deg, #1b6ec2 0%, #6f42c1 100%);
+    color: #fff;
+    padding: 3.5rem 2rem;
+}
+
+.card-product {
+    border: 1px solid #ececf1;
+    border-radius: 1rem;
+    overflow: hidden;
+    color: inherit;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+    .card-product:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 .75rem 1.5rem rgba(16, 24, 40, .10);
+    }
+
+.card-img-placeholder {
+    height: 9rem;
+}
+
+.placeholder-blue {
+    background: linear-gradient(135deg, #e7f0fb, #cfe2ff);
+}
+
+.placeholder-purple {
+    background: linear-gradient(135deg, #f3ebff, #e0d4ff);
+}

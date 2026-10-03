@@ -343,3 +343,22 @@ Rundę 2 user poprawił sam ✅; finał = plik **1:1 wzorzec** `GetProducts` (ko
 **Zmienione:** `Lang.cs` (nowy), `LangSwitch.razor` (nowy), `NavMenu.razor`, `Home.razor`, `Products.razor`.
 
 ⏭️ **Następny krok:** strona `/orders` (lista zamówień: nr | data | razem), potem wejście w zamówienie = pozycje.
+
+---
+
+**DZIEŃ 12 cd. 3 (2026-10-03, sobota) — LAKIER / WYGLĄD ✅ (front-endowy szlif)**
+
+Cel usera: „żeby nie wyglądało jak basic Blazor", „bardziej wizualnie na nowoczesny e-commerce". Zakres = **tylko wygląd**: zero nowego C#, zero zmian w logice i w słowniku.
+
+**Co zmienione:**
+1. `Home.razor` — hero (kolorowy gradient + biały przycisk) + karty „produktowe": zaokrąglone, cień + lekkie uniesienie na `:hover`, „zdjęcie" = kolorowy gradient z ikoną (🛒 / 📦, bez plików graficznych); karta Produkty klikalna w całości (`<a class="card ...">`).
+2. `wwwroot\app.css` — dopisane klasy lakieru na końcu pliku: `.hero`, `.card-product`, `.card-product:hover`, `.card-img-placeholder`, `.placeholder-blue`, `.placeholder-purple`.
+3. `Components\Layout\MainLayout.razor.css` — `.sidebar`: domyślny gradient szablonu `rgb(5,39,103) → #3a0647` zamieniony na ten sam co hero (`#1b6ec2 → #6f42c1`), żeby panel i strona były jedną rodziną kolorów.
+
+**Wpadka (asystenta):** w karcie Orders poszedł `<span class="badge text-bg-secondary">@Lang.T("OrdersCardText")</span>` — zdublowany opis jako badge; poprawka: badge usunięty, margines akapitu `mb-3` → `mb-0`.
+
+**Lekcja narzędziowa:** plik `.razor.css` (scoped CSS) w Solution Explorerze VS **siedzi wciągnięty pod komponent** — user szukał `MainLayout.razor.css` luzem w folderze `Layout` i nie znalazł; rozwinąć strzałką ▸ `MainLayout.razor` (albo Ctrl+, → „Przejdź do pliku"). Windows/eksplorator plików widzi go normalnie.
+
+**Zmienione:** `Home.razor`, `wwwroot\app.css`, `MainLayout.razor.css`.
+
+⏭️ **Następny krok:** strona `/orders` (nowy plik, nowy koncept — dwa zestawy danych: nagłówek + pozycje).
