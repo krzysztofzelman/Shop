@@ -322,3 +322,24 @@ Rundę 2 user poprawił sam ✅; finał = plik **1:1 wzorzec** `GetProducts` (ko
 **Zmienione:** `Shop\src\Shop.Api\Controllers\OrderController.cs` + `database\shop.db` (wiersz testowy).
 
 ⏭️ **Następna sesja:** strona `/orders` (lista zamówień: nr | data | razem), potem wejście w zamówienie = pozycje.
+
+---
+
+**DZIEŃ 12 cd. 2 (2026-10-03, sobota) — FRONT: strona główna + przełącznik PL/EN ✅**
+
+**`Home.razor`** przestał być szablonem („Hello, world!"): nagłówek „Shop" + opis + przycisk `Products` + dwie karty (`row` + `col-md-4`; karta Orders bez linku, bo `/orders` jeszcze nie istnieje → dałaby 404 z `NotFound.razor`). Markup Bootstrapa = lakier do wklejenia, `@code` w tym pliku nie ma wcale.
+
+**Przełącznik PL/EN — 3 części (pomysł usera, wzorzec z Magazynu):**
+1. `Shop\src\Shop.Web\Lang.cs` (nowy): `private static string current = "pl";`, dwa słowniki `Pl`/`En` (`Dictionary<string, string>`, klucze po EN), `T(key)` = `current == "en" ? En[key] : Pl[key]`, `Set(lang)`.
+2. `Components\Layout\LangSwitch.razor` (nowy): `@rendermode InteractiveServer` (layout i `NavMenu` są statyczne — bez tego przycisk jest martwy) + `@inject NavigationManager Nav`; klik → `Lang.Set(...)` + `Nav.NavigateTo(Nav.Uri, forceLoad: true)` = pełne odświeżenie, żeby strony przeczytały nowy język.
+3. Teksty stron na `@Lang.T("Klucz")` — `NavMenu.razor`, `Home.razor`, `Products.razor`. **Zostają na sztywno:** `Id`, nazwa „Shop" i waluta `zł`.
+
+**Wpadka 1 — przecinek w słowniku:** w `Pl` przecinek po `OrdersCardText` dodany ✅, w `En` nie → **błąd składni „oczekiwano elementu „,""** (CS1003). Zasada: dopisując nowy wiersz na końcu słownika, dotychczasowa ostatnia linia dostaje przecinek, nowa nie. Wyłapane `read_file` (komunikat kompilatora nie podał linii).
+
+**Wpadka 2 — hamburger nachodził na PL/EN (wąski ekran):** `.navbar-toggler` (☰) jest w CSS przyklejony (`position: absolute; right: 1rem`), a PL/EN stał w tym samym rogu `.top-row`; na ≥641px ☰ ma `display: none`, więc kolizja widoczna tylko na telefonie. Fix bez CSS: `<LangSwitch />` przeniesiony z górnego paska do listy menu (`nav-item` pod „Produkty").
+
+**Lekcja z `.razor`:** w atrybucie HTML trzeba `placeholder="@(Lang.T("Name"))"` (nawiasy) — bez nich drugi cudzysłów zamyka atrybut, a błąd jest **cichy**. W treści elementu wystarczy `@Lang.T("Name")`.
+
+**Zmienione:** `Lang.cs` (nowy), `LangSwitch.razor` (nowy), `NavMenu.razor`, `Home.razor`, `Products.razor`.
+
+⏭️ **Następny krok:** strona `/orders` (lista zamówień: nr | data | razem), potem wejście w zamówienie = pozycje.

@@ -1,7 +1,29 @@
 ﻿@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Shop</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="p-5 mb-4 bg-light rounded-3">
+    <h1 class="display-5 fw-bold">Shop</h1>
+    <p class="lead">@Lang.T("ShopLead")</p>
+    <a class="btn btn-primary btn-lg" href="/products">@Lang.T("Products")</a>
+</div>
 
-Welcome to your new app.
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">@Lang.T("Products")</h5>
+                <p class="card-text">@Lang.T("ProductsCardText")</p>
+                <a class="btn btn-outline-primary" href="/products">@Lang.T("Open")</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">@Lang.T("Orders")</h5>
+                <p class="card-text">@Lang.T("OrdersCardText")</p>
+            </div>
+        </div>
+    </div>
+</div>

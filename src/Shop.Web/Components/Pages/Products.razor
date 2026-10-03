@@ -2,25 +2,25 @@
 @rendermode InteractiveServer
 @inject HttpClient Http
 
-<PageTitle>Products</PageTitle>
+<PageTitle>@Lang.T("Products")</PageTitle>
 
-<h1>Products</h1>
+<h1>@Lang.T("Products")</h1>
 
 <div class="card mb-4">
     <div class="card-body">
         <div class="row g-2">
             <div class="col-md-3">
-                <input @bind="name" placeholder="Name" class="form-control" />
+                <input @bind="name" placeholder="@(Lang.T("Name"))" class="form-control" />
             </div>
             <div class="col-md-3">
-                <input @bind="quantity" placeholder="Quantity" class="form-control" />
+                <input @bind="quantity" placeholder="@(Lang.T("Quantity"))" class="form-control" />
             </div>
             <div class="col-md-3">
-                <input @bind="price" placeholder="Price" class="form-control" />
+                <input @bind="price" placeholder="@(Lang.T("Price"))" class="form-control" />
             </div>
             <div class="col-md-3">
-                <button class="btn btn-primary" @onclick="AddProduct">@(editingId == 0 ? "Dodaj" : "Zapisz" )</button>
-                <button class="btn btn-secondary" @onclick="Cancel">Anuluj</button>
+                <button class="btn btn-primary" @onclick="AddProduct">@(editingId == 0 ? Lang.T("Add") : Lang.T("Save") )</button>
+                <button class="btn btn-secondary" @onclick="Cancel">@Lang.T("Cancel")</button>
             </div>
         </div>
     </div>
@@ -28,7 +28,7 @@
 
 @if (products == null)
 {
-    <p><em>Loading...</em></p>
+    <p><em>@Lang.T("Loading")</em></p>
 }
 else
 {
@@ -36,10 +36,10 @@ else
         <thead>
             <tr>
                 <th>Id</th>
-                <th>Name</th>
-                <th>Quantity</th>
-                <th>Price</th>
-                <th>Actions</th>
+                <th>@Lang.T("Name")</th>
+                <th>@Lang.T("Quantity")</th>
+                <th>@Lang.T("Price")</th>
+                <th>@Lang.T("Actions")</th>
             </tr>
         </thead>
         <tbody>
@@ -52,8 +52,8 @@ else
                     <td>@product.Quantity</td>
                     <td>@product.Price zł</td>
                     <td>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">Usuń</button>
-                        <button class="btn btn-warning btn-sm" @onclick="() => EditProduct(product)">Zmień</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">@Lang.T("Delete")</button>
+                        <button class="btn btn-warning btn-sm" @onclick="() => EditProduct(product)">@Lang.T("Edit")</button>
                     </td>
                 </tr>
             }

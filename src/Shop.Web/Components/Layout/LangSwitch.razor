@@ -1,0 +1,15 @@
+﻿@rendermode InteractiveServer
+@inject NavigationManager Nav
+
+<div class="btn-group btn-group-sm" role="group">
+    <button class="btn btn-outline-light" @onclick="@(() => SetLanguage("pl"))">PL</button>
+    <button class="btn btn-outline-light" @onclick="@(() => SetLanguage("en"))">EN</button>
+</div>
+
+@code {
+    private void SetLanguage(string lang)
+    {
+        Lang.Set(lang);
+        Nav.NavigateTo(Nav.Uri, forceLoad: true);
+    }
+}
