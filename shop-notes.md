@@ -362,3 +362,29 @@ Cel usera: „żeby nie wyglądało jak basic Blazor", „bardziej wizualnie na 
 **Zmienione:** `Home.razor`, `wwwroot\app.css`, `MainLayout.razor.css`.
 
 ⏭️ **Następny krok:** strona `/orders` (nowy plik, nowy koncept — dwa zestawy danych: nagłówek + pozycje).
+
+---
+
+**DZIEŃ 13 (2026-10-04, niedziela) — ETAP 1 KROK d ZAMKNIĘTY ✅: strona `/orders` + linki.**
+
+Plan dnia = JEDNA rzecz: strona `/orders` (lista `nr | data`). Rytm: zagadka → opis słowami → kod → test.
+
+**Zagadka (czytanie własnego kodu):** „która linia mówi, do którego zamówienia należy pozycja?" → user wskazał `public int OrderId { get; set; }` w `Shop.Shared\OrderItem.cs` ✅ — to cały łącznik relacji 1-wiele.
+
+**Zgubienie w układzie projektów (temat dnia):** user: „na tym etapie nauki trochę mi się miesza, która klasa należy do której i w jakim jest folderze — czy to po stronie API, Blazora, czy współdzielona; nie wiem, czy to przejściowy etap i kwestia ćwiczeń". Odpowiedź WPROST: tak, to osobna umiejętność i kwestia ćwiczenia. Mapa 3 projektów + 3 pytania (dane dla obu → `Shop.Shared`; żądanie/baza → `Shop.Api`; widać na ekranie → `Shop.Web`) + dowód w plikach: oba `.csproj` mają `ProjectReference` do `Shop.Shared`. Ćwiczenie 5 plików → **5/5** ✅.
+
+**Nowa strona `Orders.razor`** (VS: prawy klik na folderze `Pages` → Add → **Razor Component**; „Class" dałby `.cs` — nie to): `@page "/orders"` + `@rendermode InteractiveServer` + `@inject HttpClient Http` + tabela `Id | Data` + `OnInitializedAsync` → `GET http://localhost:5143/api/Order`. Wyjaśnione, że `@page` = „tabliczka z adresem" — bez niej plik byłby komponentem, a sam link nic nie tworzy.
+
+**⚠️ Wpadka — podmiana bloku zjadła sąsiedztwo:** przy zmianie karty Zamówienia (`div` → `a href`) zaznaczenie w VS zjadło otwarcie `<div class="row g-4">` i całą kartę Produkty, a stara karta została → **„Unexpected closing tag 'div' with no matching start tag"** (osierocony `</div>`). Fix i zasada na przyszłość: przy zmianie markupu dawać CAŁY plik (Ctrl+A → Delete → wklej), nie „podmień ten blok".
+
+**Linki:** karta Zamówienia na `Home.razor` = `<a class="card ..." href="/orders">` + przycisk „Otwórz"; pozycja „Zamówienia" w `NavMenu.razor` (bez ikony — nowa klasa wymagałaby dopisania SVG w CSS); tekst karty „Wkrótce…" poprawiony na „Lista złożonych zamówień." (przestał być prawdą).
+
+**Słownik:** nowy klucz `Date` (Pl „Data" / En „Date") — `Orders` już był, więc **1 klucz, nie 2** (lekcja: sprawdzić przed zapowiedzią liczby).
+
+**Mikro-poprawka (1 linia):** `@order.Date` → `@(order.Date.ToString("dd.MM.yyyy"))` — na ekranie `03.10.2026` zamiast `3.10.2026 00:00:00`; `dd` = dzień, `MM` = miesiąc (`mm` = minuty), `yyyy` = rok.
+
+**✅ TEST (user, Ctrl+F5):** zakładka Zamówienia → tabela `1 | 03.10.2026` ✅. Build zielony, bez zmian w API i bazie.
+
+**Zmienione:** `Orders.razor` (nowy), `Home.razor`, `NavMenu.razor`, `Lang.cs`.
+
+⏭️ **Następny krok:** Etap 1 — pozycje zamówienia: `OrderItemController` (GET/POST) + wejście w zamówienie (podgląd pozycji), potem kolumna „razem". Dalej: koszyk (Etap 2), kategorie.

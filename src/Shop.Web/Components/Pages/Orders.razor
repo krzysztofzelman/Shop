@@ -1,0 +1,41 @@
+﻿@page "/orders"
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>@Lang.T("Orders")</PageTitle>
+
+<h1>@Lang.T("Orders")</h1>
+
+@if (orders == null)
+{
+    <p><em>@Lang.T("Loading")</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>@Lang.T("Date")</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var order in orders)
+            {
+                <tr>
+                    <td>@order.Id</td>
+                    <td>@(order.Date.ToString("dd.MM.yyyy"))</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Order>? orders;
+
+    protected override async Task OnInitializedAsync()
+    {
+        orders = await Http.GetFromJsonAsync<List<Order>>("http://localhost:5143/api/Order");
+    }
+}
