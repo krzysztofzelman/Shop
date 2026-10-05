@@ -388,3 +388,19 @@ Plan dnia = JEDNA rzecz: strona `/orders` (lista `nr | data`). Rytm: zagadka →
 **Zmienione:** `Orders.razor` (nowy), `Home.razor`, `NavMenu.razor`, `Lang.cs`.
 
 ⏭️ **Następny krok:** Etap 1 — pozycje zamówienia: `OrderItemController` (GET/POST) + wejście w zamówienie (podgląd pozycji), potem kolumna „razem". Dalej: koszyk (Etap 2), kategorie.
+
+---
+
+**DZIEŃ 14 (2026-10-05, poniedziałek) — pozycje zamówienia w API (GET + POST) ✅; dzień zamknięty twardym STOP-em „nie robię, czego nie rozumiem".**
+
+Cel dnia: wejść w zamówienie (pozycje). Start dobry: zagadka „które słowo sprawia, że baza zwraca JEDEN wiersz" → user wskazał zaślepkę `("{id}")` z adresu (nie `WHERE`) — pytanie było niejednoznaczne, objaśnione i domknięte: `("{id}")` → `int id` → `WHERE Id = @Id`.
+
+**Nowy plik `Shop.Api\Controllers\OrderItemController.cs`** — user sam, metodą „skopiuj swój kontroler i przerób": `[HttpGet("{orderId}")]` → `SELECT ... FROM OrderItems WHERE OrderId = @OrderId`. Po wyjątku `SQLite Error 1: 'no such column: PrductId'` **sam znalazł literówkę w stringu SQL** (błąd cichy — build go nie widzi, wychodzi dopiero w bazie). Test: `http://localhost:5143/api/OrderItem/1` → `[]` ✅ (pusty wynik = sukces). Doszedł `[HttpPost] AddOrderItem` (`INSERT INTO OrderItems`, 4 parametry) → po dwóch `Invoke-RestMethod` GET zwraca 2 pozycje: `id 1` (productId 1, ilość 2, 59.99) i `id 2` (productId 2, ilość 1, 19.99) — **oba `orderId = 1`** = relacja 1-wiele widoczna w danych ✅.
+
+Build: **0 błędów, 9 ostrzeżeń** (7 starych `CS8600` + 2 nowe; nie ruszać).
+
+**⚠️ Wpadka FORMY (lekcja dla asystenta):** blok `[HttpPost]` poszedł jako gotowa wklejka („kopia `AddOrder`", bez ścieżki pliku) → user: „add order? gdzie to jest?", potem „wklejam to, nie rozumiem tych poleceń z SQL", a wklejka wylądowała w złym miejscu (metoda w metodzie → CS0106), przy tym plik w edytorze VS ≠ plik na dysku. Koniec: twarde STOP „nie będę robił czegoś, czego nie rozumiem". **Wniosek: logikę C# (kontroler, `@code`, SQL) tłumaczyć linijka po linijce — wklejka tylko dla lakieru (markup/CSS/słownik) albo jawnie oznaczona jako poprawka mechaniczna.**
+
+**Zmienione:** `src\Shop.Api\Controllers\OrderItemController.cs` (nowy), `database\shop.db` (2 pozycje testowe).
+
+⏭️ **Następny krok:** ekran `/orders/{id}` w Blazor (`@page "/orders/{id}"` + tabela pozycji) — **bez wklejek, linijka po linijce**; potem link z wiersza listy na `/orders/{id}`.
