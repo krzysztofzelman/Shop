@@ -404,3 +404,34 @@ Build: **0 błędów, 9 ostrzeżeń** (7 starych `CS8600` + 2 nowe; nie ruszać)
 **Zmienione:** `src\Shop.Api\Controllers\OrderItemController.cs` (nowy), `database\shop.db` (2 pozycje testowe).
 
 ⏭️ **Następny krok:** ekran `/orders/{id}` w Blazor (`@page "/orders/{id}"` + tabela pozycji) — **bez wklejek, linijka po linijce**; potem link z wiersza listy na `/orders/{id}`.
+
+---
+
+**DZIEŃ 15 (2026-10-06, wtorek) — EKRAN POZYCJI ZAMÓWIENIA ✅ (`/orders/{id}`: Produkt | Ilość | Cena) + link z listy. Etap 1 DOMKNIĘTY.**
+
+Cel dnia: wejść w zamówienie i zobaczyć jego pozycje. Zagadka #1 (czytanie `Orders.razor`): „jedna linia, która decyduje o adresie strony" → `@page "/orders"` ✅ za pierwszym razem (pytanie nazywało MIEJSCE).
+
+**⚠️ Trzy wpadki w trasie z numerem — cała lekcja dnia:**
+1. **`@page "/orders[id]"`** (kwadratowe nawiasy, nawyk od atrybutów `[HttpGet]`/`[Route]` z API) → Blazor czyta `[id]` jako **zwykły tekst** → **„Not Found"** (strona nie istnieje; to nie awaria i nie błąd kompilacji). Dziurę na numer robią **klamry**: `{id}`.
+2. **`@page "/orders{id}"`** — zniknął **ukośnik**; bez niego adres to sklejony tekst, nie `/orders/2`.
+3. **`@page "/orders/{id}"` + `[Parameter] public int Id`** → **wyjątek runtime**: `InvalidCastException: Unable to cast 'System.String' to 'System.Int32'` — z adresu przychodzi **tekst**, a właściwość jest `int`. Fix: **`{id:int}`** (route constraint). Sprawdzone na TYMCZASOWYM projekcie (`dotnet new blazor`): `{id}`+`int` = **500**, `{id:int}`+`int` = **200**, `{id}`+`string` = **200** — dlatego poprawka poszła dopiero po teście, jako jedna wersja.
+
+**⚠️ `@@code {` — podwójny małp = blok kodu czytany jako MARKUP:** lawina „Found markup element with unexpected name 'OrderItem'/'Product'/'List'", „Unclosed tag", „Nazwa „items”/„Id”/„ProductName” nie istnieje". Przyczyna: JEDEN znak — `@@` w Razor wypisuje `@` jako tekst. Fix: `@@code` → `@code`. (Edytor VS sam dokleja drugi `@` przy wpisywaniu w `.razor`.)
+
+**⚠️ IntelliSense blokował pisanie** („coś na siłę wpieprza te podpowiedzi") → działa **`Ctrl+Alt+Space`** (tryb, w którym nic nie wchodzi samo) oraz na stałe: Opcje → Edytor tekstu → C# → IntelliSense → odznaczyć „Pokaż listę uzupełniania po wpisaniu znaku".
+
+**Nowy plik `Shop\src\Shop.Web\Components\Pages\OrderDetails.razor`:** `@page "/orders/{id:int}"` + `[Parameter] public int Id { get; set; }` + tabela `Produkt | Ilość | Cena`. Dwa `GET` w `OnInitializedAsync` (pozycje zamówienia + lista produktów) i metoda `ProductName(int productId)` — `foreach` po produktach + `if` numer się zgadza → `return` nazwa (znane klocki, zero nowych konceptów). Pozycja trzyma tylko `ProductId`, więc nazwa musi być dopasowana ze słownika produktów.
+
+**Słownik:** 2 nowe klucze — `OrderDetails` (Szczegóły zamówienia / Order details) i `Product` (Produkt / Product); `Quantity` i `Price` już były.
+
+**✅ TEST (user, Ctrl+F5):** `/orders/2` → nagłówek „Szczegóły zamówienia **2**" + same nagłówki tabeli (pusto — poprawne: testowe pozycje mają `orderId: 1`); `/orders/1` → `? | 2 | 59,99 zł`, `? | 1 | 19,99 zł`, a po `POST` z `productId: 3` doszedł trzeci wiersz **`Myszka | 1 | 49,99 zł`** ✅.
+
+**⚠️ `?` w kolumnie Produkt = wisząca referencja (dane, nie kod):** `GET api/Product` = tylko `{"id":3,"name":"Myszka"}`, a pozycje wskazują `productId` **1** i **2** (wpisane z palca w Dniu 14). Baza milczy, bo nie ma wymuszonego klucza obcego. Starych 2 wierszy nie ruszamy — materiał z Dnia 14.
+
+**Link z listy:** `Orders.razor` — `<td>@order.Id</td>` → `<td><a href="/orders/@order.Id">@order.Id</a></td>`; klik w `1` otwiera `/orders/1` ✅.
+
+**Pytanie usera o METODĘ:** „jak zwykły zjadacz chleba może dojść do tego, że wystarczyło dopisać `int`? jak nie AI, to gdzie szukać?" → 4 kroki: (1) przeczytać tekst wyjątku dosłownie (nazwa właściwości + typy), (2) oficjalna dokumentacja (learn.microsoft.com → Blazor routing → **route constraints**), (3) wkleić DOKŁADNY komunikat błędu w wyszukiwarkę, (4) mały projekt próbny. Sedno: nikt nie trzyma `:int` w głowie — trzyma nawyk sprawdzania.
+
+**Zmienione:** `OrderDetails.razor` (nowy), `Orders.razor`, `Lang.cs`, `database\shop.db` (3. pozycja testowa).
+
+⏭️ **Następny krok:** kolumna „razem" (ilość × cena) i suma zamówienia; potem formularz dodawania pozycji na stronie zamówienia; dalej koszyk (Etap 2). W kolejce: 9 ostrzeżeń `CS8600` (`ProductController.cs` — osobna powtórka o `null`).

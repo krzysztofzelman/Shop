@@ -23,7 +23,7 @@ else
             @foreach (var order in orders)
             {
                 <tr>
-                    <td>@order.Id</td>
+                    <td><a href="/orders/@order.Id">@order.Id</a></td>
                     <td>@(order.Date.ToString("dd.MM.yyyy"))</td>
                 </tr>
             }

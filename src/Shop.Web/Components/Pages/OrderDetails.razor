@@ -1,0 +1,64 @@
+﻿@page "/orders/{id:int}"
+@rendermode InteractiveServer
+@inject HttpClient Http
+
+<PageTitle>@Lang.T("OrderDetails")</PageTitle>
+
+<h1>@Lang.T("OrderDetails") @Id</h1>
+
+@if (items == null)
+{
+    <p><em>@Lang.T("Loading")</em></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>@Lang.T("Product")</th>
+                <th>@Lang.T("Quantity")</th>
+                <th>@Lang.T("Price")</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in items)
+            {
+
+                <tr>
+                    <td>@ProductName(item.ProductId)</td>
+                    <td>@item.Quantity</td>
+                    <td>@item.Price zł</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private List<OrderItem>? items;
+    private List<Product>? products;
+
+    protected override async Task OnInitializedAsync()
+    {
+        items = await Http.GetFromJsonAsync<List<OrderItem>>($"http://localhost:5143/api/OrderItem/{Id}");
+        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+    }
+
+    private string ProductName(int productId)
+    {
+        if (products == null)
+        {
+            return "";
+        }
+        foreach (var product in products)
+        {
+            if (product.Id == productId)
+            {
+                return product.Name;
+            }
+        }
+        return "?";
+    }
+}
