@@ -18,6 +18,7 @@ else
                 <th>@Lang.T("Product")</th>
                 <th>@Lang.T("Quantity")</th>
                 <th>@Lang.T("Price")</th>
+                <th>@Lang.T("Total")</th>
             </tr>
         </thead>
         <tbody>
@@ -28,10 +29,12 @@ else
                     <td>@ProductName(item.ProductId)</td>
                     <td>@item.Quantity</td>
                     <td>@item.Price zł</td>
+                    <td>@(item.Quantity* item.Price) zł</td>
                 </tr>
             }
         </tbody>
     </table>
+    <p>@Lang.T("Sum"): @OrderSum() zł</p>
 }
 
 @code {
@@ -60,5 +63,19 @@ else
             }
         }
         return "?";
+    }
+
+    private decimal OrderSum()
+    {
+        if (items == null)
+        {
+            return 0;
+        }
+        decimal total = 0;
+        foreach (var item in items)
+        {
+            total = total + item.Quantity * item.Price;
+        }
+        return total;
     }
 }

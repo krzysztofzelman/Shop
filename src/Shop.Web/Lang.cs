@@ -25,7 +25,9 @@ public static class Lang
         { "Edit", "Zmień" },
         { "Loading", "Ładowanie..." },
         { "OrderDetails", "Szczegóły zamówienia" },
-        { "Product", "Produkt" }
+        { "Product", "Produkt" },
+        { "Total", "Razem" },
+        { "Sum", "Suma" }
     };
 
     private static readonly Dictionary<string, string> En = new()
@@ -49,7 +51,9 @@ public static class Lang
         { "Edit", "Edit" },
         { "Loading", "Loading..." },
         { "OrderDetails", "Order details" },
-        { "Product", "Product" }
+        { "Product", "Product" },
+        { "Total", "Total" },
+        { "Sum", "Sum" }
     };
 
     public static string T(string key)

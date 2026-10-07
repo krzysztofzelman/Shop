@@ -435,3 +435,31 @@ Cel dnia: wejść w zamówienie i zobaczyć jego pozycje. Zagadka #1 (czytanie `
 **Zmienione:** `OrderDetails.razor` (nowy), `Orders.razor`, `Lang.cs`, `database\shop.db` (3. pozycja testowa).
 
 ⏭️ **Następny krok:** kolumna „razem" (ilość × cena) i suma zamówienia; potem formularz dodawania pozycji na stronie zamówienia; dalej koszyk (Etap 2). W kolejce: 9 ostrzeżeń `CS8600` (`ProductController.cs` — osobna powtórka o `null`).
+
+---
+
+**DZIEŃ 16 (2026-10-07, środa) — KOLUMNA „RAZEM" + SUMA ZAMÓWIENIA ✅ (krok „razem" z planu Dnia 15).**
+
+Cel dnia (wybrany przez usera) = kolumna **„Razem"** (Ilość × Cena) i linia **„Suma zamówienia"** pod tabelą na `/orders/1`. Rytm: zagadka → opis słowami → przeróbka → test.
+
+**Zagadka (czytanie własnego kodu):** „która linia wypisuje cenę, która daje ilość" → user wskazał `@item.Quantity` i `@item.Price zł` ✅ (pytanie nazywało MIEJSCE — obie linie trafione od razu).
+
+**Przeróbka (user, linijka po linijce):** nowa metoda `OrderSum()` w `@code` obok `ProductName` — ten sam wzorzec: strażnik `if (items == null) return 0;` → `decimal total = 0;` (**licznik**) → `foreach` → `total = total + item.Quantity * item.Price;` → `return total;`. Plus linia `<p>@Lang.T("Sum"): @OrderSum() zł</p>` po `</table>`. Rozkładane m.in.: `=` to **rozkaz przypisania** („wynik z prawej wpisz do zmiennej po lewej", dlatego `total = total + …` ma sens), a `@( … )` to **granica wyrażenia** (bez nawiasów `@item.Quantity * item.Price` wypisałoby dosłowny tekst `2 * item.Price`).
+
+**⚠️ WPADKA 1 — `@item.Total` → CS1061:** user dopisał 4. komórkę jako `@item.Total zł` („weź pole `Total`"), a `OrderItem` ma tylko `Id`, `OrderId`, `ProductId`, `Quantity`, `Price`. **Lekcja dnia (koncept):** w tej tabeli są DWA rodzaje komórek — **odczyt z danych** (`@item.Quantity`, `@item.Price` — pole istnieje w klasie, wartość przyszła z JSON-a) vs **liczenie w miejscu** (`@(item.Quantity * item.Price)` — takiej wartości nigdzie nie ma, trzeba ją policzyć). Dodatkowo zgubiony `<` w nagłówku (`th>…` zamiast `<th>…`).
+
+**⚠️ WPADKA 2 — literówka w nazwie metody:** metoda zapisana jako `OrderSUm` (duże `U`), wołanie `@OrderSum()` → **CS0103 „Nazwa „OrderSum" nie istnieje w bieżącym kontekście"**. C# **rozróżnia wielkie i małe litery**: `OrderSUm` ≠ `OrderSum`. Błąd GŁOŚNY — kompilator sam podaje nazwę, nic nie trzeba zgadywać.
+
+**🚨 WPADKA 3 — błąd ASYSTENTA (główna lekcja dnia):** ten sam CS0103 wracał 3× mimo poprawionej nazwy. Asystent sprawdzał tylko `OrderDetails.razor` (tam metoda była, wołania nie było) i tłumaczył komunikat „starym wpisem w Liście błędów" — a prawdziwa przyczyna była w **`Orders.razor`**: linia `<p>@Lang.T("Sum"): @OrderSum() zł</p>` wylądowała między `</tbody>` a `</table>` na stronie LISTY zamówień (która nie ma ani `OrderSum`, ani `items`). Oba pliki kończą się identycznie (`</tbody>` → `</table>` → `}`), więc wystarczyła aktywna zła karta przy wklejaniu. **Zasada: przy „nazwa nie istnieje" i czystym pliku z rozmowy → grep po CAŁYM projekcie** (gdzie DEFINICJA, gdzie WOŁANIE). Fix: linia usunięta z `Orders.razor` (plik wrócił 1:1 do stanu z commita).
+
+**Pytanie usera „co to jest runtime?":** brak klucza w słowniku wychodzi dopiero w runtime — kompilator widzi tylko `string key`, więc `@Lang.T("Total")` bez wpisu rzuca `KeyNotFoundException` przy otwarciu strony (build zielony). Stąd klucze `Total`/`Sum` dopisane PRZED kodem kolumny; przyjęta tabela **kompilacja (build) vs runtime**.
+
+**Delegacja na koniec:** user zmęczony pętlą błędów („popraw to sam") → asystent zapisał CAŁY `OrderDetails.razor` na dysku (`write_file`); user w VS przeładował kartę („zmieniony poza edytorem" → **Tak/Przeładuj**).
+
+**✅ TEST (user, Ctrl+F5):** `/orders/1` = 4 kolumny — `? | 2 | 59,99 zł | 119,98 zł`, `? | 1 | 19,99 zł | 19,99 zł`, `Myszka | 1 | 49,99 zł | 49,99 zł` + **`Suma: 189,96 zł`** pod tabelą ✅ (119,98 + 19,99 + 49,99).
+
+**Słownik:** 2 nowe klucze — `Total` (Razem / Total) i `Sum` (Suma / Sum); `Sum` dodany „na zapas" przed użyciem.
+
+**Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (kolumna „Razem", metoda `OrderSum`, linia „Suma"), `src\Shop.Web\Lang.cs` (klucze `Total`, `Sum`).
+
+⏭️ **Następny krok:** formularz dodawania pozycji na stronie zamówienia (wybierz produkt + ilość → „dodaj pozycję") — nowy klocek (`@bind` + `POST api/OrderItem`); dalej koszyk (Etap 2). W kolejce: 9 ostrzeżeń `CS8600` (`ProductController.cs` — osobna powtórka o `null`).
