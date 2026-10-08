@@ -5,6 +5,7 @@
 <PageTitle>@Lang.T("OrderDetails")</PageTitle>
 
 <h1>@Lang.T("OrderDetails") @Id</h1>
+<p><a href="/orders">@Lang.T("Orders")</a></p>
 
 @if (items == null)
 {
@@ -35,6 +36,7 @@ else
         </tbody>
     </table>
     <p>@Lang.T("Sum"): @OrderSum() zł</p>
+    <p>@Lang.T("Items"): @items.Count</p>
 }
 
 @code {

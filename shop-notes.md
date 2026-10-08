@@ -463,3 +463,30 @@ Cel dnia (wybrany przez usera) = kolumna **„Razem"** (Ilość × Cena) i linia
 **Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (kolumna „Razem", metoda `OrderSum`, linia „Suma"), `src\Shop.Web\Lang.cs` (klucze `Total`, `Sum`).
 
 ⏭️ **Następny krok:** formularz dodawania pozycji na stronie zamówienia (wybierz produkt + ilość → „dodaj pozycję") — nowy klocek (`@bind` + `POST api/OrderItem`); dalej koszyk (Etap 2). W kolejce: 9 ostrzeżeń `CS8600` (`ProductController.cs` — osobna powtórka o `null`).
+
+---
+
+**DZIEŃ 17 (2026-10-08, czwartek) — LICZNIK „POZYCJE" + LINK POWROTNY ✅ (krótka sesja, zero nowych konceptów C#).**
+
+Start: user „moze jakas dzisiaj krótka sesja?" → status (repo `Shop` czyste @ `d2dc8c3` = `origin/master`) → cel dnia dobrany jako drobiazg bez nowego konceptu. Rytm: zagadka-czytanie → przeróbka → test.
+
+**Zagadka (czytanie własnego kodu):** „liczba w tabeli pojawia się na dwa sposoby — znajdź, gdzie jest ODCZYTANA z danych, a gdzie LICZONA" → user wskazał `@item.Price zł` (odczyt) i `@(item.Quantity* item.Price) zł` (liczenie) ✅ — ta sama para co w Dniu 16, trafiona od razu. Uzupełnienie: trzecie miejsce to `@OrderSum()` pod tabelą (liczenie schowane w metodzie).
+
+**Przeróbka DONE ✅ (`OrderDetails.razor` + `Lang.cs`):**
+- **Słownik:** para kluczy `Items` — `Pl` linia 31 = `{ "Items", "Pozycje" }`, `En` linia 58 = `{ "Items", "Items" }` (przecinek wędruje do `Sum`, znana konwencja). Zrobione PRZED kodem — brak klucza = `KeyNotFoundException` w runtime.
+- **Markup:** linia 38 (zaraz po linii sumy, jeszcze w środku `else`): `<p>@Lang.T("Items"): @items.Count</p>`.
+- **Koncept dnia:** `items.Count` = **właściwość** (bez nawiasów — lista sama wie, ile ma elementów = odczyt), kontrast z `OrderSum()` = **metoda** (nawiasy = wywołanie/liczenie). Ta sama różnica co `@item.Price` vs `@( … )`.
+
+**Pytanie usera „gdzie mam wpisać to 2?"** → odpowiedź numerami linii + `Ctrl+G` → 37/38 i obrazek „przed → po" (NOWA linia NAD klamrą `}` zamykającą `else` — pod klamrą byłoby poza blokiem, gdzie `items` może być `null`). Weryfikacja `read_file`: wpisane poprawnie ✅ (wcięcie i miejsce w `else`).
+
+**Link powrotny (druga drobna rzecz dnia):** linia 8, pod `<h1>`: `<p><a href="/orders">@Lang.T("Orders")</a></p>` — wzorzec linku z Dnia 13 (`<a href="/orders/@order.Id">`), klucz `Orders` był już w słowniku (nic do dopisania). Rozbiór: `<a>` = link, `href` = dokąd prowadzi, `@Lang.T("Orders")` = co widać. **Weryfikacja linku = KLIKNIĘCIE** (sam napis widać od razu, różnica to kolor i kursor).
+
+**Pytanie usera „co to jest dwa? pierwszych…"** → powtórka wiszącej referencji z dowodem z API: `api/Product` = tylko `{id: 3, "Myszka"}`, a `api/OrderItem/1` = `productId` 1, 2, 3 → wiersze 1 i 2 nie mają swojego produktu, więc `ProductName` oddaje zapasowe `"?"`. Dane, nie kod; SQLite nie pilnuje klucza obcego. Zostaje jako materiał.
+
+**✅ TEST (user, Ctrl+F5):** `http://localhost:5107/orders/1` → `Suma: 189,96 zł`, pod nią **`Pozycje: 3`** ✅; link „Zamówienia" pod nagłówkiem wraca na `http://localhost:5107/orders` ✅ (potwierdzone kliknięciem).
+
+**Chaotyczne pisanie usera w czacie:** opis „wchodzi się w zamówienie, żeby zobaczyć, co w nim jest" — treść POPRAWNA (mapa: lista `1 | 03.10.2026` → klik w numer → `/orders/1` → pozycje → link powrotny; numer `Id` = łącznik obu stron). Normalizować, nie poprawiać — liczy się mechanizm, nie literówki.
+
+**Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (linia 8 link powrotny, linia 38 licznik), `src\Shop.Web\Lang.cs` (klucz `Items`).
+
+⏭️ **Następny krok:** formularz dodawania pozycji na stronie zamówienia (wybierz produkt + ilość → „dodaj pozycję") — NOWY klocek (`@bind` + `POST api/OrderItem`), wchodzić tylko na wyraźne „tak"; dalej koszyk (Etap 2). W kolejce: 9 ostrzeżeń `CS8600` (`ProductController.cs`).
