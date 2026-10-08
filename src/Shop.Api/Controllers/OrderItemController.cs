@@ -16,7 +16,7 @@ public class OrderItemController : ControllerBase
     public List<OrderItem> GetOrdersItems(int orderId)
     {
         List<OrderItem> items = new List<OrderItem>();
-        string connectionString = _config.GetConnectionString("ShopDb");
+        string connectionString = _config.GetConnectionString("ShopDb") ?? "";
 
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
@@ -43,7 +43,7 @@ public class OrderItemController : ControllerBase
     [HttpPost]
     public void AddOrderItem(OrderItem newItem)
     {
-        string connectionString = _config.GetConnectionString("ShopDb");
+        string connectionString = _config.GetConnectionString("ShopDb") ?? "";
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
             connection.Open();

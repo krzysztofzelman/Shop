@@ -16,7 +16,7 @@ public class ProductController : ControllerBase
     public List<Product> GetProducts()
     {
         List<Product> products = new List<Product>();
-        string connectionString = _config.GetConnectionString("ShopDb");
+        string connectionString = _config.GetConnectionString("ShopDb") ?? "";
 
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
@@ -40,7 +40,7 @@ public class ProductController : ControllerBase
     [HttpPost]
     public void AddProduct(Product newProduct)
     {
-        string connectionString = _config.GetConnectionString("ShopDb");
+        string connectionString = _config.GetConnectionString("ShopDb") ?? "";
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
             connection.Open();
@@ -55,7 +55,7 @@ public class ProductController : ControllerBase
     [HttpDelete("{id}")]
     public void DeleteProduct (int id)
     {
-        string connectionString = _config.GetConnectionString("ShopDb");
+        string connectionString = _config.GetConnectionString("ShopDb") ?? "";
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
             connection.Open();
@@ -69,7 +69,7 @@ public class ProductController : ControllerBase
     [HttpPut("{id}")]
     public void UpdateProduct(int id, Product product)
     {
-        string connectionString = _config.GetConnectionString("ShopDb");
+        string connectionString = _config.GetConnectionString("ShopDb") ?? "";
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
             connection.Open();

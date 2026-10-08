@@ -490,3 +490,15 @@ Start: user „moze jakas dzisiaj krótka sesja?" → status (repo `Shop` czyste
 **Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (linia 8 link powrotny, linia 38 licznik), `src\Shop.Web\Lang.cs` (klucz `Items`).
 
 ⏭️ **Następny krok:** formularz dodawania pozycji na stronie zamówienia (wybierz produkt + ilość → „dodaj pozycję") — NOWY klocek (`@bind` + `POST api/OrderItem`), wchodzić tylko na wyraźne „tak"; dalej koszyk (Etap 2). W kolejce: 9 ostrzeżeń `CS8600` (`ProductController.cs`).
+
+---
+
+**DZIEŃ 17 cd. (2026-10-08) — CZYSZCZENIE OSTRZEŻEŃ `CS8600`: 9 → 0 ✅ (kolejka z Dni 14/16 domknięta).**
+
+User sam wrócił do tematu: wkleił 9× „**Konwertowanie literału null lub możliwej wartości null na nienullowalny typ**" i zapytał „**a jak to poprawic?**".
+
+- **Skąd ostrzeżenia (ustalone `grep`, nie zgadywane):** wszystkie 9 to `GetConnectionString("ShopDb")` — `Program.cs` linia 21, `OrderController.cs` 16 i 40, `OrderItemController.cs` 19 i 46, `ProductController.cs` 19, 43, 58 i 72. `Shop.Api.csproj` ma `<Nullable>enable</Nullable>`, a `GetConnectionString` oddaje **`string?`** („tekst ALBO nic"), więc wpada do zmiennej `string` („na pewno tekst") → ostrzeżenie (build nadal zielony).
+- **Poprawka (user SAM, `Ctrl+H` → „Zamień wszystko" w 4 plikach):** `GetConnectionString("ShopDb");` → `GetConnectionString("ShopDb") ?? "";` — ten sam wzorzec, który już był w `ProductController.cs` w linii 32 przy `Convert.ToString`.
+- **Wynik:** build usera = „**jest czysto**" (0 błędów, 0 ostrzeżeń); grep potwierdził 9/9 linii z `?? ""` ✅.
+- **⚠️ Lekcja dnia:** do meldunku user dołożył „**choc nie wiem czy rozumeim cały proces i czy w sensie dodana tego**" — czysty build NIE jest dla niego dowodem zrozumienia. Rozłożone na jego linii: `GetConnectionString("ShopDb")` → `??` sprawdza WARTOŚĆ z lewej (nic → bierze `""`, tekst → przepuszcza bez zmian) → zmienna `connectionString` → `new SqliteConnection(connectionString)`. **Zachowanie apki BEZ ZMIAN** (klucz `ShopDb` istnieje w `appsettings.json`, więc `??` nigdy nie zadziała) — zmiana jest tylko dla KOMPILATORA; sens porządku: pusta lista ostrzeżeń, żeby NOWE było widać od razu. Gdyby klucza naprawdę brakowało → do bazy idzie `""` i `connection.Open()` rzuca wyjątkiem (głośno, nie cicho).
+- **Zmienione:** `src\Shop.Api\Program.cs`, `src\Shop.Api\Controllers\ProductController.cs`, `OrderController.cs`, `OrderItemController.cs`.

@@ -18,7 +18,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
-string cs = builder.Configuration.GetConnectionString("ShopDb");
+string cs = builder.Configuration.GetConnectionString("ShopDb") ?? "";
 using (SqliteConnection connection = new SqliteConnection(cs))
 {
     connection.Open();
