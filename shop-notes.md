@@ -502,3 +502,38 @@ User sam wrócił do tematu: wkleił 9× „**Konwertowanie literału null lub m
 - **Wynik:** build usera = „**jest czysto**" (0 błędów, 0 ostrzeżeń); grep potwierdził 9/9 linii z `?? ""` ✅.
 - **⚠️ Lekcja dnia:** do meldunku user dołożył „**choc nie wiem czy rozumeim cały proces i czy w sensie dodana tego**" — czysty build NIE jest dla niego dowodem zrozumienia. Rozłożone na jego linii: `GetConnectionString("ShopDb")` → `??` sprawdza WARTOŚĆ z lewej (nic → bierze `""`, tekst → przepuszcza bez zmian) → zmienna `connectionString` → `new SqliteConnection(connectionString)`. **Zachowanie apki BEZ ZMIAN** (klucz `ShopDb` istnieje w `appsettings.json`, więc `??` nigdy nie zadziała) — zmiana jest tylko dla KOMPILATORA; sens porządku: pusta lista ostrzeżeń, żeby NOWE było widać od razu. Gdyby klucza naprawdę brakowało → do bazy idzie `""` i `connection.Open()` rzuca wyjątkiem (głośno, nie cicho).
 - **Zmienione:** `src\Shop.Api\Program.cs`, `src\Shop.Api\Controllers\ProductController.cs`, `OrderController.cs`, `OrderItemController.cs`.
+
+---
+
+**DZIEŃ 18 (2026-10-09, piątek) — FORMULARZ DODAWANIA POZYCJI, CZĘŚĆ A: pasek na ekranie ✅ — część B (metody + podpięcie przycisku) ODŁOŻONA na jutro na życzenie usera.**
+
+Start: user „hej! jaka dzisiejsza sesja? jakie propozycje?" → status (`Shop` czyste @ `cab159a` = `origin/master`) → rekomendacja A (formularz pozycji = nowy klocek `@bind` + `POST`) albo B (utrwalenie) → user wybrał **A**.
+
+**Pytanie usera „co znaczy bind? jakie jest tłumaczenie w tym kontekście?"** → najpierw dosłownie („wiązać / powiązać"), potem mechanika BEZ przenośni: `@bind` na polu robi **dwa kierunki naraz** — zmienna → pole (pokazuje wartość) ORAZ pole → zmienna (zapisuje wpisane). Bez `@bind` trzeba by pisać `value=…` i osobno `@onchange=…`. Kluczowe: `@bind` **zapisuje do zmiennej**, więc zmienna musi istnieć — to nie jest zwykłe wypisanie tekstu jak `@item.Price`.
+
+**Klik-test z Dnia 17 ZALICZONY ✅:** link „Zamówienia" (linia 8) na `/orders/1` wraca na listę `/orders` — wisząca weryfikacja zamknięta.
+
+**Zagadka (czytanie):** „wskaż linię, którą strona pobiera dane z API" → user wkleił **CAŁĄ metodę** `OnInitializedAsync` z DWOMA liniami `GetFromJsonAsync` (`linia 50` = `OrderItem/{Id}`, `linia 51` = `api/Product`) i zapytał „o to chodzi?" = TRAFIENIE. ⚠️ Lekcja: pytanie mówiło „jedną linię", a plik ma dwie o tej samej roli — **liczbę linii ustalać po `read_file`, nie z pamięci**. Most do dnia: te linie tylko CZYTAJĄ (GET), dziś dokładamy ich przeciwieństwo (POST + pole).
+
+**Opis słowami (przed kodem):** cel = dopisać pozycję z ekranu zamiast przez PowerShell; ekran = pod tabelą pasek [lista produktów ▼][ilość][Dodaj]; 3 kawałki + 2 istniejące linie (lista = `products` z linii 51, odświeżenie = linia 50); bez koszyka/logowania, a `POST api/OrderItem` istnieje od Dnia 14 → user: „chyba rozumiem".
+
+**CZĘŚĆ A DONE ✅ (`src\Shop.Web\Components\Pages\OrderDetails.razor`):**
+- **Markup** (wstawiony PO bloku `else`): `@if (products != null) { … }` z kartą `card` → `card-body` → `row g-2` → 3 kolumny `col-md-4`:
+  - `<select @bind="selectedProductId" class="form-control">` + `@foreach (var product in products)` → `<option value="@product.Id">@product.Name</option>` (value = co wpadnie do zmiennej, tekst = co widać),
+  - `<input @bind="quantity" placeholder="@(Lang.T("Quantity"))" class="form-control" />` (skopiowane 1:1 z `Products.razor`),
+  - `<button class="btn btn-primary">@Lang.T("Add")</button>` — NA RAZIE bez akcji (część B).
+- **`@code`:** dopisane `private int selectedProductId = 3;` i `private int quantity = 1;` (po `private List<Product>? products;`).
+- **`Lang.cs` BEZ ZMIAN** — klucze `Product`, `Quantity`, `Add` już istniały (sprawdzone przed dopisywaniem, nie na wyczucie).
+- **Po co `@if (products != null)`:** strażnik — w środku kompilator wie, że `products` nie jest `null`; bez tego `foreach (var product in products)` dałby ostrzeżenie CS8602.
+
+**5 rzeczy do poprawy po wpisce usera (literówki + struktura):** `@foreach (var pproduct …)` → `product` (w `<option>` używał `product` = „nazwa nie istnieje"), `@blind` → `@bind` (pole nie zapisywałoby wartości do zmiennej), `class=" col-md-4"` (spacja), **brakujący `</div>`** karty (niezamknięty element = błąd Razora), brak obu zmiennych w `@code`. Następnie user: „popraw" → asystent zapisał poprawiony CAŁY plik na dysku (jak w Dniu 14) — instrukcja z przeładowaniem karty w VS (VS pyta o zapis → **Nie**, żeby nie nadpisać dobrej wersji).
+
+**✅ TEST (user):** build = **0 błędów, 0 ostrzeżeń** (ostrzeżeń `CS8600` nie ma — domknięte w Dniu 17); `Ctrl+F5` → `http://localhost:5107/orders/1` → **pasek pod tabelą WIDAĆ** (lista z Myszką, pole ilości, przycisk Dodaj) ✅ — klik przycisku jeszcze nic nie robi.
+
+**⏭️ CZĘŚĆ B — NA JUTRO (user: „możemy to zrobić jutro?"):** dopisać do `@code`:
+- `AddItem()` — składa `new OrderItem { OrderId = Id, ProductId = selectedProductId, Quantity = quantity, Price = ProductPrice(selectedProductId) }`, wysyła `Http.PostAsJsonAsync("http://localhost:5143/api/OrderItem", newItem)`, na końcu odświeża `items = await Http.GetFromJsonAsync<List<OrderItem>>($"…/api/OrderItem/{Id}")`;
+- `ProductPrice(int)` — kopia `ProductName` z 3 zmianami: zwraca `decimal`, oddaje `product.Price`, zapasowo `0`; dlaczego: endpoint zapisuje `Price` **wprost** do kolumny, sam jej nie szuka, więc cena musi przyjść z produktu;
+- `@onclick="AddItem"` na przycisku (⚠️ bez `@` przycisk byłby martwy, a kompilator tego NIE zgłosi).
+Test części B: `Dodaj` → nowy wiersz + `Pozycje:` 3 → 4.
+
+**Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (+27 linii: pasek + 2 zmienne).

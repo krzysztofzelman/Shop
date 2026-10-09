@@ -39,11 +39,38 @@ else
     <p>@Lang.T("Items"): @items.Count</p>
 }
 
+@if (products != null)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <select @bind="selectedProductId" class="form-control">
+                        @foreach (var product in products)
+                        {
+                            <option value="@product.Id">@product.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input @bind="quantity" placeholder="@(Lang.T("Quantity"))" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary">@Lang.T("Add")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     [Parameter] public int Id { get; set; }
 
     private List<OrderItem>? items;
     private List<Product>? products;
+
+    private int selectedProductId = 3;
+    private int quantity = 1;
 
     protected override async Task OnInitializedAsync()
     {
