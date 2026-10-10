@@ -56,7 +56,7 @@ else
                     <input @bind="quantity" placeholder="@(Lang.T("Quantity"))" class="form-control" />
                 </div>
                 <div class="col-md-4">
-                    <button class="btn btn-primary">@Lang.T("Add")</button>
+                    <button class="btn btn-primary" @onclick="AddItem">@Lang.T("Add")</button>
                 </div>
             </div>
         </div>
@@ -105,6 +105,33 @@ else
         {
             total = total + item.Quantity * item.Price;
         }
-        return total;
+        return total;    
+    }
+    private async Task AddItem()
+    {
+        var newItem = new OrderItem
+            {
+                OrderId = Id,
+                ProductId = selectedProductId,
+                Quantity = quantity,
+                Price = ProductPrice(selectedProductId)
+            };
+        await Http.PostAsJsonAsync("http://localhost:5143/api/OrderItem", newItem);
+        items = await Http.GetFromJsonAsync<List<OrderItem>>($"http://localhost:5143/api/OrderItem/{Id}");
+    }
+    private decimal ProductPrice(int productId)
+    {
+        if (products == null)
+        {
+            return 0;
+        }
+        foreach (var product in products)
+        {
+            if (product.Id == productId)
+            {
+                return product.Price;
+            }
+        }
+        return 0;
     }
 }

@@ -537,3 +537,30 @@ Start: user „hej! jaka dzisiejsza sesja? jakie propozycje?" → status (`Shop`
 Test części B: `Dodaj` → nowy wiersz + `Pozycje:` 3 → 4.
 
 **Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (+27 linii: pasek + 2 zmienne).
+
+---
+
+**DZIEŃ 19 (2026-10-10, sobota) — CZĘŚĆ B FORMULARZA POZYCJI DZIAŁA ✅ (przycisk „Dodaj" dodaje wiersz); plus DECYZJA O CENACH (cennik vs kopia + warunek zwijania).**
+
+Start: user „hej! co dziś proponujesz na sesję?" → status (`Shop` czyste @ `8cc159a` = `origin/master`) → rekomendacja: dokończyć CZĘŚĆ B (gotowa z Dnia 18).
+
+**Rozbiór CZĘŚCI A na życzenie usera** („wytłumacz co było w części A, żebym dobrze zrozumiał") — top-down: NAJPIERW dwie zmienne (`selectedProductId = 3`, `quantity = 1` = „pamięć paska"), potem markup od `@if (products != null)`: `card` → `row g-2` → 3 kolumny `col-md-4` = lista produktów (`<select @bind>` + `@foreach` → `<option value="@product.Id">@product.Name</option>`), pole ilości (`<input @bind="quantity">`), przycisk (bez akcji). ⚠️ **Lekcja:** numery linii podane wcześniej Z PAMIĘCI (kolumny 47/56/61, przycisk 61–63) były BŁĘDNE — plik ma **47/55/58** i przycisk **59**; numery do kotwicy `Ctrl+G` ustalać `grep`, nie pamięcią.
+
+**CZĘŚĆ B DONE ✅ — `src\Shop.Web\Components\Pages\OrderDetails.razor`:**
+- **Przycisk** (linia 59): dopisane `@onclick="AddItem"`.
+- **`AddItem()`** (po `OrderSum()`): `new OrderItem { OrderId = Id, ProductId = selectedProductId, Quantity = quantity, Price = ProductPrice(selectedProductId) }` → `Http.PostAsJsonAsync("http://localhost:5143/api/OrderItem", newItem)` → odświeżenie `items = await Http.GetFromJsonAsync<List<OrderItem>>($"…/api/OrderItem/{Id}")`.
+- **`ProductPrice(int)`**: kopia `ProductName` z 3 zmianami — zwraca `decimal`, oddaje `product.Price`, zapas `0`.
+- Koncepty: `async Task` = to samo co `OnInitializedAsync` (czeka przez `await`); `PostAsJsonAsync` = WYSYŁA (POST), arg 1 = adres, arg 2 = obiekt; cena MUSI być policzona na stronie, bo `AddOrderItem` zapisuje `Price` wprost do kolumny.
+
+**⚠️ BŁĄD DNIA — GŁOŚNE vs CICHE (literówki po wpisce usera):**
+1. **GŁOŚNY (build go złapał):** `var newitem = …` vs użycie `newItem` → **CS0103 „Nazwa «newItem» nie istnieje"** — C# rozróżnia wielkość liter (małe `i` vs wielkie `I` to dwie nazwy).
+2. **CICHE (build milczy, wybuchają w runtime):** `@oneclic="AddItem"` zamiast `@onclick` (guzik martwy), `http;//loclahost:5143` (średnik zamiast dwukropka + literówka), `loclahost`, a po pierwszej poprawce nadal `localahost` (dodatkowe `a`) w OBU adresach.
+- **Objaw:** build „0 błędów", klik „Dodaj" nic nie robi, w konsoli brak wyjątku → to znak CICHEGO błędu w adresie/dyrektywie, nie brak kodu.
+- **Fix:** `Ctrl+H` → „Zamień wszystko" `localahost` → `localhost`; restart `Shift+F5` → `Ctrl+F5`.
+- **✅ TEST:** `/orders/1` → Myszka + ilość 2 → **Dodaj** → nowy wiersz, `Pozycje:` 3 → 4 ✅ (user: „dodało jeszcze raz myszka ilosc 2").
+
+**Pytanie usera o CENY (myślenie procesami sklepu):** „jak przyjdą dwie dostawy po sobie, cena się zmieni? jak ustalać ceny — marża czy sztywno, zmieniane przez admina/dział handlowy?" → odpowiedź: **trzy warstwy ceny** (katalogowa `Product.Price` / kopia w zamówieniu `OrderItem.Price` / koszt zakupu — jeszcze go nie ma); **rekomendacja: sztywny cennik + kopia w zamówieniu, bez marży** (brak ceny zakupu = nie ma z czego liczyć `koszt + %`). Skutek dla zwijania: **klucz = produkt ORAZ cena**, różna cena → osobne wiersze. **User POTWIERDZIŁ: „zapisz sobie że tą rekomendację będziemy wprowadzać".**
+
+**Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (przycisk + `AddItem()` + `ProductPrice()`); `database\shop.db` (dane z testu kliknięcia).
+
+⏭️ **Następny krok:** zaimplementować **zwijanie pozycji** na `/orders/{id}` — jeden wiersz na parę (produkt + cena), ilości sumowane; nowa metoda na stronie (wzorzec „Łopata już jest?" z Magazynu: pętla + `if` + szukanie) + podmiana źródła w tabeli i w `Pozycje:`. Dalej: koszyk (Etap 2).
