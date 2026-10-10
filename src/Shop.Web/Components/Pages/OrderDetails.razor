@@ -23,7 +23,7 @@ else
             </tr>
         </thead>
         <tbody>
-            @foreach (var item in items)
+            @foreach (var item in GroupedItems())
             {
 
                 <tr>
@@ -36,7 +36,7 @@ else
         </tbody>
     </table>
     <p>@Lang.T("Sum"): @OrderSum() zł</p>
-    <p>@Lang.T("Items"): @items.Count</p>
+    <p>@Lang.T("Items"): @GroupedItems().Count</p>
 }
 
 @if (products != null)
@@ -107,6 +107,31 @@ else
         }
         return total;    
     }
+    private List<OrderItem> GroupedItems()
+    {
+        var result = new List<OrderItem>();
+        if (items == null)
+        {
+            return result;
+        }
+        foreach (var item in items)
+        {
+            bool found = false;
+            foreach (var row in result)
+            {
+                if (row.ProductId == item.ProductId && row.Price == item.Price)
+                {
+                    row.Quantity = row.Quantity + item.Quantity;
+                    found = true; }
+            }
+
+            if (found == false)
+            {
+                result.Add(new OrderItem { ProductId = item.ProductId, Quantity = item.Quantity, Price = item.Price });
+            }
+        }
+        return result;
+    }    
     private async Task AddItem()
     {
         var newItem = new OrderItem

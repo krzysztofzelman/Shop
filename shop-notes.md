@@ -566,3 +566,23 @@ Start: user „hej! co dziś proponujesz na sesję?" → status (`Shop` czyste @
 ⏭️ **Następny krok:** zaimplementować **zwijanie pozycji** na `/orders/{id}` — jeden wiersz na parę (produkt + cena), ilości sumowane; nowa metoda na stronie (wzorzec „Łopata już jest?" z Magazynu: pętla + `if` + szukanie) + podmiana źródła w tabeli i w `Pozycje:`. Dalej: koszyk (Etap 2).
 
 **KIERUNEK NA PRZYSZŁOŚĆ — PRZYGOTOWANIA DO WDROŻENIA (życzenie usera 2026-10-10):** user: „chciałbym robić przygotowania w tym kierunku, może Docker albo jakoś podobnie" — czyli chce szykować Shop pod wdrożenie (Docker / podobne). Ocena asystenta: na publiczny VPS jeszcze NIE (brak logowania/kont, adresy `http://localhost:5143` wpisane na sztywno w stronach, SQLite ze ścieżką Windows, brak HTTPS/reverse proxy) → najpierw dokończyć Etap 1–2 (pozycje + koszyk) i dodać logowanie/konta, a przygotowania wdrożeniowe (Docker + nginx + HTTPS + publikacja) zrobić jako OSOBNĄ sesję.
+
+---
+
+**DZIEŃ 19 cd. (2026-10-10, wieczór) — ZWIJANIE POZYCJI (metoda `GroupedItems()`) DZIAŁA ✅; ROZBIÓR KODU ODŁOŻONY NA NASTĘPNĄ SESJĘ.**
+
+Cel: na `/orders/{id}` dwie linie Myszki → **jeden wiersz** `Myszka | 3 | 49,99 zł | 149,97 zł`; klucz zwijania = **produkt ORAZ cena** (decyzja o cenach z Dnia 19 — patrz wyżej).
+
+**Zmiana w `src\Shop.Web\Components\Pages\OrderDetails.razor` (+29 linii):**
+- NOWA metoda **`GroupedItems()`** (zwraca `List<OrderItem>`) wstawiona między `OrderSum()` i `AddItem()` — przechodzi po `items`, buduje NOWĄ listę `result` (para produkt+cena = jeden wiersz, ilości sumowane); wzorzec z Magazynu: `bool found` + `foreach` + `if`.
+- Tabela (linia 26): `@foreach (var item in GroupedItems())`; licznik (linia 39): `@GroupedItems().Count`.
+- `OrderSum()` dalej liczy surowe `items` — dlatego `Suma:` **bez zmian** (suma kwot = suma ilości × cena, niezależnie od zwijania).
+
+**⚠️ BŁĄD DNIA — jeden znak = lawina (literówki po wpisce usera):**
+1. **GŁOŚNY:** `foreanch(var row in result)` zamiast `foreach` (linia 120) → kompilator zwrócił **10 komunikatów** („Nazwa «var»/«row» nie istnieje", 2× CS1003, „Oczekiwano średnika"). To NIE 10 błędów — to JEDNA literówka (kaskada).
+2. **CICHY:** brak `@` przed `GroupedItems()` w linii `Pozycje:` — build zielony, ale strona pokazałaby DOSŁOWNY tekst „Pozycje: GroupedItems().Count" zamiast liczby.
+- Fix naniesiony przez asystenta (user: „popraw to za mnie") → build **3 projekty, 0 błędów, 0 ostrzeżeń** ✅.
+
+**⏭️ DO OGRODZENIA NA NASTĘPNĄ SESJĘ — ROZBIÓR `GroupedItems()`:** user: „to hardcore ten kod jak dla mnie… działać to działa, sprawdzałem, build wstaje, nie ma błędów, funkcja działa. ale zapisz sobie, żeby ze mną ogarnąć ten kod". Rozbiór **od zera, po jednym kawałku** (3 części): **(1)** `var result = new List<OrderItem>();` + strażnik `if (items == null) return result;`; **(2)** `bool found = false;` + zewnętrzna pętla `foreach (var item in items)`; **(3)** wewnętrzna pętla `foreach (var row in result)` + `if (row.ProductId == … && row.Price == …)` → dolicz ilość / dopisz nowy wiersz. Ściana usera = **4 rzeczy naraz** (nowa lista-wynik, pętla w pętli, `&&`, doliczanie do wiersza); dwie z nich ma już z Magazynu (`foreach`, `bool found` + `if`), nowe są: **pętla w pętli** i **`&&`**. Metoda: NIE zadawać pytań kontrolnych, iść kawałkami na JEGO „dalej" → `feedback/user-gates-progress-himself.md`.
+
+**Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (+29), `database\shop.db` (dane z testów).
