@@ -564,3 +564,5 @@ Start: user „hej! co dziś proponujesz na sesję?" → status (`Shop` czyste @
 **Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (przycisk + `AddItem()` + `ProductPrice()`); `database\shop.db` (dane z testu kliknięcia).
 
 ⏭️ **Następny krok:** zaimplementować **zwijanie pozycji** na `/orders/{id}` — jeden wiersz na parę (produkt + cena), ilości sumowane; nowa metoda na stronie (wzorzec „Łopata już jest?" z Magazynu: pętla + `if` + szukanie) + podmiana źródła w tabeli i w `Pozycje:`. Dalej: koszyk (Etap 2).
+
+**KIERUNEK NA PRZYSZŁOŚĆ — PRZYGOTOWANIA DO WDROŻENIA (życzenie usera 2026-10-10):** user: „chciałbym robić przygotowania w tym kierunku, może Docker albo jakoś podobnie" — czyli chce szykować Shop pod wdrożenie (Docker / podobne). Ocena asystenta: na publiczny VPS jeszcze NIE (brak logowania/kont, adresy `http://localhost:5143` wpisane na sztywno w stronach, SQLite ze ścieżką Windows, brak HTTPS/reverse proxy) → najpierw dokończyć Etap 1–2 (pozycje + koszyk) i dodać logowanie/konta, a przygotowania wdrożeniowe (Docker + nginx + HTTPS + publikacja) zrobić jako OSOBNĄ sesję.
