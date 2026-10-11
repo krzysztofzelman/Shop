@@ -104,7 +104,7 @@ else
     private async Task DeleteProduct(int id)
     {
         await Http.DeleteAsync($"api/Product/{id}");
-        products = await Http. GetFromJsonAsync<List<Product>>("api/Product");
+        products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
     private void Cancel()
     {

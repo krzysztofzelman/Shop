@@ -1,0 +1,25 @@
+services:
+  shop-api:
+    build:
+      context: .
+      dockerfile: src/Shop.Api/Dockerfile
+    environment:
+      - ConnectionStrings__ShopDb=Data Source=/app/data/shop.db
+    volumes:
+      - shop-data:/app/data
+    ports:
+      - "5143:8080"
+
+  shop-web:
+    build:
+      context: .
+      dockerfile: src/Shop.Web/Dockerfile
+    environment:
+      - ApiUrl=http://shop-api:8080
+    ports:
+      - "5107:8080"
+    depends_on:
+      - shop-api
+
+volumes:
+  shop-data:

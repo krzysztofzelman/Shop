@@ -624,3 +624,27 @@ Kontekst: user sam podniósł kierunek infrastruktury („czemu coś nie zrobimy
 **Zmienione:** `src\Shop.Web\appsettings.json`, `src\Shop.Web\Program.cs`, `3× src\Shop.Web\Components\Pages\*.razor`.
 
 ⏭️ **Następny krok wdrożenia (Krok 2):** Docker — `Dockerfile` + `docker-compose` (API + strona w kontenerach lokalnie); wymaga włączonego Docker Desktop. Ostatecznie VPS = osobna sesja przez SSH. ⚠️ Wciąż **brak logowania** — dodać przed publicznym VPS.
+
+---
+
+**DZIEŃ 20 cd. (2026-10-11, druga sesja, cz. 2) — KROK 2 WDROŻENIA: DOCKER (API + strona w kontenerach) ✅.**
+
+Start: user „wchodzimy w dockera". Silnik wstał po ręcznym starcie Docker Desktop (`docker info`: 29.4.1, OSType linux); obrazy `mcr.microsoft.com/dotnet/sdk:10.0` i `.../aspnet:10.0` sprawdzone `docker manifest inspect` — są. Pojęcia podane od zera: **obraz** = zamrożona instalacja, **kontener** = uruchomiony obraz.
+
+**Nowe pliki:**
+- `src\Shop.Api\Dockerfile` + `src\Shop.Web\Dockerfile` — 2 etapy: `FROM ...sdk:10.0 AS build` (kompiluje `dotnet publish -c Release`) → `FROM ...aspnet:10.0` (kopiuje gotowe pliki), `EXPOSE 8080`, `ENTRYPOINT ["dotnet", "Shop.X.dll"]`.
+- `.dockerignore` (root Shop) — `**/bin`, `**/obj`, `.vs`, `.git`.
+- `docker-compose.yml` (root Shop) — usługa **shop-api** (wolumen `shop-data:/app/data`, `ConnectionStrings__ShopDb=Data Source=/app/data/shop.db`, port `5143:8080`) + **shop-web** (`ApiUrl=http://shop-api:8080`, port `5107:8080`, `depends_on: shop-api`). Klucz: **nazwa usługi `shop-api` = adres API w sieci compose** (dlatego `localhost` tam nie działa).
+
+**Komendy i wyniki:** `docker build -f src/Shop.Api/Dockerfile -t shop-api .` → obraz `shop-api:latest` (393 MB); `docker run -d --rm --name shop-api -p 5143:8080 -e "ConnectionStrings__ShopDb=…" -v shop-data:/app/data shop-api` → API w kontenerze, `curl localhost:5143/api/Product` = `[]`; potem `docker stop shop-api` + `docker compose up --build -d` → `shop-shop-api-1` i `shop-shop-web-1` `Up`, `localhost:5107/` = 200.
+
+**Dowód end-to-end:** user dodał produkt przez przeglądarkę na `http://localhost:5107/products` („dodało się") → `curl localhost:5143/api/Product` = `[{"id":1,"name":"Klawiatura","quantity":5,"price":14999}]` ⇒ **strona w kontenerze gada z API w kontenerze** ✅.
+
+**⚠️ Obserwacje:**
+- **Cena wyszła `14999` zamiast `149,99`** — pole liczby zjada separator (przecinek/kropkę); do poprawy przy okazji (input ceny).
+- **Lekcje formy:** plik bez rozszerzenia w VS = „Dodaj → Nowy element → Ogólne → Plik tekstowy" + sprawdzić `.txt`; plik kropkowy poza projektami = Notatnik „Zapisz jako typ: Wszystkie pliki" (wyszło `.dockerignore.txt` → rename); `docker build` MUSI mieć **kropkę na końcu** (kontekst); „gdzie są te flagi?" → cała komenda w JEDNEJ linii + tabela część → znaczenie.
+- User sam poprawił kosmetykę w `Products.razor` (`Http. GetFromJsonAsync` → `Http.GetFromJsonAsync`).
+
+**Zmienione:** `docker-compose.yml`, `.dockerignore`, `src\Shop.Api\Dockerfile`, `src\Shop.Web\Dockerfile` (nowe) + kosmetyka `src\Shop.Web\Components\Pages\Products.razor`. Dane w kontenerze siedzą w wolumenie `shop_shop-data` (świeża, pusta baza — NIE ta z Windowsa).
+
+⏭️ **Następny krok (Krok 3): VPS** — osobna sesja przez SSH (nginx/HTTPS). ⚠️ Wciąż **brak logowania** — dodać PRZED publicznym VPS.
