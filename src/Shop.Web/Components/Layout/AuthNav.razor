@@ -1,0 +1,37 @@
+﻿@rendermode InteractiveServer
+@implements IDisposable
+@using Microsoft.AspNetCore.Components
+@inject AuthState Auth
+@inject NavigationManager Nav
+
+@if (Auth.IsLoggedIn)
+{
+    <button class="nav-link btn btn-link" @onclick="Logout">@Lang.T("Logout")</button>
+}
+else
+{
+    <NavLink class="nav-link" href="login">@Lang.T("SignIn")</NavLink>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Nav.LocationChanged += Refresh;
+    }
+
+    private void Refresh(object? sender, LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    private void Logout()
+    {
+        Auth.IsLoggedIn = false;
+        Nav.NavigateTo("/login");
+    }
+
+    public void Dispose()
+    {
+        Nav.LocationChanged -= Refresh;
+    }
+}

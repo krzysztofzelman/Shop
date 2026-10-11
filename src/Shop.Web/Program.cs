@@ -1,5 +1,7 @@
 using Shop.Web.Components;
 
+using Shop.Web;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,6 +9,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 var apiUrl = builder.Configuration["ApiUrl"] ?? "http://localhost:5143";
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiUrl) });
+
+builder.Services.AddScoped <AuthState>();
 
 var app = builder.Build();
 

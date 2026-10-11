@@ -648,3 +648,42 @@ Start: user „wchodzimy w dockera". Silnik wstał po ręcznym starcie Docker De
 **Zmienione:** `docker-compose.yml`, `.dockerignore`, `src\Shop.Api\Dockerfile`, `src\Shop.Web\Dockerfile` (nowe) + kosmetyka `src\Shop.Web\Components\Pages\Products.razor`. Dane w kontenerze siedzą w wolumenie `shop_shop-data` (świeża, pusta baza — NIE ta z Windowsa).
 
 ⏭️ **Następny krok (Krok 3): VPS** — osobna sesja przez SSH (nginx/HTTPS). ⚠️ Wciąż **brak logowania** — dodać PRZED publicznym VPS.
+
+---
+
+**DZIEŃ 21 (2026-10-11, trzecia sesja) — LOGOWANIE: BRAMA PRZED VPS (kroki 1–7) ✅ + rozpoznanie serwera.**
+
+Pytanie otwierające: „co dalej robimy pod vps? jak pomysł na sesję?". User sam wkleił dane serwera → okazało się, że **klucz `vps_magazyn` (z wcześniejszych wdrożeń) działa** i wchodzimy bez hasła: `ssh -i "%USERPROFILE%\.ssh\vps_magazyn" -p 2022 -o BatchMode=yes root@31.3.218.196`. **Hasła roota nie zapisujemy** (user dostał zalecenie `passwd` po sesji).
+
+**Rozpoznanie serwera (`vps16211`, awhost, Ubuntu 22.04):** Docker **29.5.2** + Compose **v5.1.4** + nginx **1.18** już stoją; ufw aktywny (80, 443, 2022, 3001, 5173, 5174, 9090); wolne porty m.in. **5107 i 5143**; na serwerze chodzi **8 cudzych projektów** (magazyn, restaurant, stitchcore, napraw-mnie, rezerwuj) — niczego z tego nie ruszamy. Repo `github.com/krzysztofzelman/Shop` jest **PUBLICZNE** → `git clone` na serwerze pójdzie bez tokenów.
+
+**Sprzątanie (na wyraźne „możemy tam coś wywalić"):** `docker builder prune -f` → zwolnione **~5 GB** (dysk `30G/40G (79%)` → `25G/40G (66%)`, czyli **14 GB luzu**). Świadomie **NIE ruszone** obrazy nieużywane (2 GB — mogą być kopie do cofnięcia cudzych projektów) ani wolumeny (mogą trzymać dane).
+
+**Decyzja:** logowanie **przed** wystawieniem na publiczny VPS (user: „**zrobmy to logowanie poerw**"). Mechanizm przyjęty słowami: pole hasła → po poprawnym haśle strona pamięta zalogowanie na czas sesji karty → żądanie do API wiezie hasło w nagłówku, a API bez niego odmawia (`401`). Dlaczego blokada MUSI być też w API: stronę można pominąć i wołać API wprost (`curl -X DELETE` — user nie znał `curl`, dostał wyjaśnienie).
+
+**Kroki 1–2 — pudełko stanu:**
+- `src\Shop.Web\AuthState.cs` (NOWY): `namespace Shop.Web` + `public class AuthState { public bool IsLoggedIn = false; }`. User wpisał `isLoggedIn` z małej → **konwencja C#: rzeczy `public` piszemy z dużej** (jak `AddProduct`, `GetProducts`) — user sam poprawił na `IsLoggedIn`.
+- `src\Shop.Web\Program.cs`: `using Shop.Web;` (top-level `Program` siedzi w globalnej przestrzeni, więc bez tego `AuthState` nie istnieje) + `builder.Services.AddScoped<AuthState>();`. **`AddScoped` = jedno pudełko na jedną sesję** (circuit = jedna otwarta karta). Build czysty ✅ (user sam: „nie ma jest czysto", w pliku został odstęp w `AddScoped < AuthState>()` — działa, C# pozwala).
+
+**Krok 3 — hasło w konfiguracji:** `src\Shop.Web\appsettings.json` dołożony klucz `"SecretKey": "dev123"` (podany CAŁY plik — user podmienia ostatni wpis, więc całość jest bezpieczniejsza). Hasło **deweloperskie**, bo repo jest publiczne; na serwerze nadpiszemy je zmienną środowiskową — tak jak `ConnectionStrings__ShopDb` w compose.
+
+**Krok 4 — strona logowania:** `src\Shop.Web\Components\Pages\Login.razor` (NOWY, cały plik): `@page "/login"`, `@rendermode InteractiveServer`, `@inject AuthState Auth` / `IConfiguration Config` / `NavigationManager Nav`; `Config["SecretKey"]` = wartość z konfiguracji; po zgodzie `Auth.IsLoggedIn = true;` + `Nav.NavigateTo("/products")`, w przeciwnym razie `wrongPassword = true` → czerwony tekst. Do słownika `Lang.cs` doszły klucze **`Login`, `SignIn`, `Password`, `WrongPassword`, `Logout`** (PL/EN). Test: złe hasło = czerwony tekst, `dev123` = wejście na `/products` ✅.
+
+**Konsola przeglądarki — „mam błędy" ≠ błędy:** user zgłosił z konsoli `Information: Normalizing '_blazor'…`, `Information: WebSocket connected to ws://localhost:5107/_blazor?id=…` oraz `browserLink: [Violation] Permissions policy violation: unload is not allowed…`. **To nie są błędy:** `Information:` = połączenie Blazora wstało, a `browserLink` to funkcja Visual Studio (widać po nazwie źródła). Prawdziwy błąd jest czerwony i pisze `Error:`.
+
+**Sprawdzenie sesji (ważne dla całej bramy):** zamiast zgadywać, user policzył linie `WebSocket connected …?id=` po zalogowaniu i kliknięciu „Produkty" → **jedna linia** ⇒ przejście zostało w **tej samej sesji**. Potwierdzone dokumentacją MS: nawigacja w aplikacji nie robi pełnego przeładowania, więc `AuthState` się trzyma.
+
+**Krok 6 — blokada strony:** `src\Shop.Web\Components\Pages\Products.razor` (cały plik): `@inject AuthState Auth` + `@if (!Auth.IsLoggedIn) { żółty panel z linkiem do /login } else { …cała strona… }` oraz na starcie `OnInitializedAsync`: `if (!Auth.IsLoggedIn) { return; }` (bez hasła strona nie strzela do API). Nowy klucz słownika **`LoginRequired`**. Test F5 → panel zamiast tabeli ✅.
+
+**Krok 7 — „Wyloguj" w menu:** `src\Shop.Web\Components\Layout\AuthNav.razor` (NOWY) + jedna pozycja `<AuthNav />` w `NavMenu.razor`. Wzorzec skopiowany z `LangSwitch` (menu jest statyczne, więc „żywy" element musi być osobnym interaktywnym elementem).
+
+**Trzy problemy z tego kroku (każdy rozwiązany):**
+1. **Enter w polu hasła nie działał** („to już wcześniej też tak było"). Przyczyna: pole i przycisk stały **luzem** — HTML wysyła Enterem tylko pole należące do `<form>`, a `@onclick` nie łapie klawisza. Fix: `<form @onsubmit="TryLogin" @onsubmit:preventDefault>` + `<button type="submit">` bez `@onclick` — jedno zdarzenie obsługuje Enter ORAZ klik.
+2. **`Nazwa „NavLinkAllAll" nie istnieje`** — błąd wprowadzony PRZEZ ASYSTENTA do wklejonego `NavMenu.razor` (zamiast `Match="NavLinkMatch.All"`). Naprawione edycją na dysku; lekcja: nie wstawiać do pliku do wklejenia żadnych „celowych" błędów.
+3. **„Wyloguj" nie pojawiało się w menu** po zalogowaniu. Przyczyna: `NavMenu`/`AuthNav` siedzą w **statycznym układzie** i są rysowane RAZ — Blazor nie przerysowuje ich przy przejściu na inną stronę (strona TAK, dlatego blokada działała). Fix w `AuthNav.razor`: `@implements IDisposable`, `OnInitialized()` → `Nav.LocationChanged += Refresh;`, `Refresh(...)` → `StateHasChanged()`, `Dispose()` → `-=`. Test: po zalogowaniu menu pokazuje „Wyloguj", klik wraca na `/login` ✅.
+
+**⚠️ Znane ograniczenie (nie usterka):** `AuthState` żyje w jednej sesji karty, więc **F5 / Ctrl+R i przełącznik PL/EN wylogowują** (przełącznik robi pełne przeładowanie — `Nav.NavigateTo(Nav.Uri, forceLoad: true)`), a przy wejściu na stronę **mignie** panel „Zaloguj się". Dla obcego użytkownika bez znaczenia (nie zna hasła); gdy zacznie przeszkadzać — przenosimy zalogowanie do **ciasteczka**.
+
+**Zmienione/nowe:** `src\Shop.Web\AuthState.cs` (nowy), `src\Shop.Web\Components\Pages\Login.razor` (nowy), `src\Shop.Web\Components\Layout\AuthNav.razor` (nowy), `src\Shop.Web\Lang.cs`, `src\Shop.Web\Program.cs`, `src\Shop.Web\appsettings.json`, `src\Shop.Web\Components\Pages\Products.razor`, `src\Shop.Web\Components\Layout\NavMenu.razor`.
+
+⏭️ **Zostało:** **krok 8 — brama w API** (bez hasła `curl` dostaje `401`, nie skasuje produktu), potem **wdrożenie na VPS** (osobna sesja przez SSH: klon repo, `docker compose up --build -d`, otwarcie portu 5107, potem nginx + domena + HTTPS), a przy okazji drobiazg **pola ceny** (`149,99` → `14999`).

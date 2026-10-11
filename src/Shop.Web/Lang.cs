@@ -28,7 +28,13 @@ public static class Lang
         { "Product", "Produkt" },
         { "Total", "Razem" },
         { "Sum", "Suma" },
-        { "Items", "Pozycje" }
+        { "Items", "Pozycje" },
+        { "Login", "Logowanie" },
+        { "SignIn", "Zaloguj" },
+        { "Password", "Hasło" },
+        { "WrongPassword", "Złe hasło" },
+        { "LoginRequired", "Zaloguj się, żeby zobaczyć tę stronę." },
+        { "Logout", "Wyloguj" }
     };
 
     private static readonly Dictionary<string, string> En = new()
@@ -55,7 +61,13 @@ public static class Lang
         { "Product", "Product" },
         { "Total", "Total" },
         { "Sum", "Sum" },
-        { "Items", "Items" }
+        { "Items", "Items" },
+        { "Login", "Login" },
+        { "SignIn", "Sign in" },
+        { "Password", "Password" },
+        { "WrongPassword", "Wrong password" },
+        { "LoginRequired", "Sign in to view this page." },
+        { "Logout", "Log out" }
     };
 
     public static string T(string key)

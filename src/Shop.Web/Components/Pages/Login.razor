@@ -1,0 +1,49 @@
+﻿@page "/login"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.Components
+@using Microsoft.Extensions.Configuration
+@inject AuthState Auth
+@inject IConfiguration Config
+@inject NavigationManager Nav
+
+<PageTitle>@Lang.T("Login")</PageTitle>
+
+<h1>@Lang.T("Login")</h1>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form @onsubmit="TryLogin" @onsubmit:preventDefault>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <input type="password" @bind="password" placeholder="@(Lang.T("Password"))" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <button type="submit" class="btn btn-primary">@Lang.T("SignIn")</button>
+                </div>
+            </div>
+        </form>
+
+        @if (wrongPassword)
+        {
+            <p class="text-danger mt-2 mb-0">@Lang.T("WrongPassword")</p>
+        }
+    </div>
+</div>
+
+@code {
+    private string password = "";
+    private bool wrongPassword = false;
+
+    private void TryLogin()
+    {
+        if (password == Config["SecretKey"])
+        {
+            Auth.IsLoggedIn = true;
+            Nav.NavigateTo("/products");
+        }
+        else
+        {
+            wrongPassword = true;
+        }
+    }
+}

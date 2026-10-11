@@ -1,64 +1,74 @@
 ﻿@page "/products"
 @rendermode InteractiveServer
 @inject HttpClient Http
+@inject AuthState Auth
 
 <PageTitle>@Lang.T("Products")</PageTitle>
 
 <h1>@Lang.T("Products")</h1>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="row g-2">
-            <div class="col-md-3">
-                <input @bind="name" placeholder="@(Lang.T("Name"))" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <input @bind="quantity" placeholder="@(Lang.T("Quantity"))" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <input @bind="price" placeholder="@(Lang.T("Price"))" class="form-control" />
-            </div>
-            <div class="col-md-3">
-                <button class="btn btn-primary" @onclick="AddProduct">@(editingId == 0 ? Lang.T("Add") : Lang.T("Save") )</button>
-                <button class="btn btn-secondary" @onclick="Cancel">@Lang.T("Cancel")</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-@if (products == null)
+@if (!Auth.IsLoggedIn)
 {
-    <p><em>@Lang.T("Loading")</em></p>
+    <div class="alert alert-warning">
+        @Lang.T("LoginRequired")
+        <a href="/login">@Lang.T("SignIn")</a>
+    </div>
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>@Lang.T("Name")</th>
-                <th>@Lang.T("Quantity")</th>
-                <th>@Lang.T("Price")</th>
-                <th>@Lang.T("Actions")</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var product in products)
-            {
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <input @bind="name" placeholder="@(Lang.T("Name"))" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <input @bind="quantity" placeholder="@(Lang.T("Quantity"))" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <input @bind="price" placeholder="@(Lang.T("Price"))" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary" @onclick="AddProduct">@(editingId == 0 ? Lang.T("Add") : Lang.T("Save") )</button>
+                    <button class="btn btn-secondary" @onclick="Cancel">@Lang.T("Cancel")</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    @if (products == null)
+    {
+        <p><em>@Lang.T("Loading")</em></p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td>@product.Id</td>
-                    <td>@product.Name</td>
-                    <td>@product.Quantity</td>
-                    <td>@product.Price zł</td>
-                    <td>
-                        <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">@Lang.T("Delete")</button>
-                        <button class="btn btn-warning btn-sm" @onclick="() => EditProduct(product)">@Lang.T("Edit")</button>
-                    </td>
+                    <th>Id</th>
+                    <th>@Lang.T("Name")</th>
+                    <th>@Lang.T("Quantity")</th>
+                    <th>@Lang.T("Price")</th>
+                    <th>@Lang.T("Actions")</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var product in products)
+                {
+                    <tr>
+                        <td>@product.Id</td>
+                        <td>@product.Name</td>
+                        <td>@product.Quantity</td>
+                        <td>@product.Price zł</td>
+                        <td>
+                            <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">@Lang.T("Delete")</button>
+                            <button class="btn btn-warning btn-sm" @onclick="() => EditProduct(product)">@Lang.T("Edit")</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }
 
 @code {
@@ -66,6 +76,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (!Auth.IsLoggedIn)
+        {
+            return;
+        }
+
         products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
 
@@ -93,6 +108,7 @@ else
 
         products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
+
     private void EditProduct(Product product)
     {
         name = product.Name;
@@ -106,6 +122,7 @@ else
         await Http.DeleteAsync($"api/Product/{id}");
         products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
+
     private void Cancel()
     {
         name = "";
@@ -114,4 +131,3 @@ else
         editingId = 0;
     }
 }
- 
