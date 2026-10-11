@@ -36,6 +36,6 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        orders = await Http.GetFromJsonAsync<List<Order>>("http://localhost:5143/api/Order");
+        orders = await Http.GetFromJsonAsync<List<Order>>("api/Order");
     }
 }

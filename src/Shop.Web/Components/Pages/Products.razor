@@ -66,7 +66,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+        products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
 
     private string name = "";
@@ -84,14 +84,14 @@ else
         };
         if (editingId == 0)
         {
-            await Http.PostAsJsonAsync("http://localhost:5143/api/Product", newProduct);
+            await Http.PostAsJsonAsync("api/Product", newProduct);
         }
         else
         {
-            await Http.PutAsJsonAsync($"http://localhost:5143/api/Product/{editingId}", newProduct);
+            await Http.PutAsJsonAsync($"api/Product/{editingId}", newProduct);
         }
 
-        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+        products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
     private void EditProduct(Product product)
     {
@@ -103,8 +103,8 @@ else
 
     private async Task DeleteProduct(int id)
     {
-        await Http.DeleteAsync($"http://localhost:5143/api/Product/{id}");
-        products = await Http. GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+        await Http.DeleteAsync($"api/Product/{id}");
+        products = await Http. GetFromJsonAsync<List<Product>>("api/Product");
     }
     private void Cancel()
     {

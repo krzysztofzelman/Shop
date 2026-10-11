@@ -74,8 +74,8 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        items = await Http.GetFromJsonAsync<List<OrderItem>>($"http://localhost:5143/api/OrderItem/{Id}");
-        products = await Http.GetFromJsonAsync<List<Product>>("http://localhost:5143/api/Product");
+        items = await Http.GetFromJsonAsync<List<OrderItem>>($"api/OrderItem/{Id}");
+        products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
 
     private string ProductName(int productId)
@@ -141,8 +141,8 @@ else
                 Quantity = quantity,
                 Price = ProductPrice(selectedProductId)
             };
-        await Http.PostAsJsonAsync("http://localhost:5143/api/OrderItem", newItem);
-        items = await Http.GetFromJsonAsync<List<OrderItem>>($"http://localhost:5143/api/OrderItem/{Id}");
+        await Http.PostAsJsonAsync("api/OrderItem", newItem);
+        items = await Http.GetFromJsonAsync<List<OrderItem>>($"api/OrderItem/{Id}");
     }
     private decimal ProductPrice(int productId)
     {

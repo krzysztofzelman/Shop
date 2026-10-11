@@ -603,3 +603,24 @@ Start: user „jaki pomysł na dzisiejsza sesje nauki?" → status (`Shop` czyst
 **DECYZJA USERA — dzień zamknięty:** „ja bym to zostawił na razie, później można wrócić do tej funkcji albo tłumaczenia kodu po czasie. zróbmy opcję B" → rozbiór `GroupedItems()` **ODŁOŻONY** (kod zostaje, działa), dzień domknięty notatką + commitem.
 
 **Zmienione:** tylko `Shop\shop-notes.md` (kod bez zmian).
+
+---
+
+**DZIEŃ 20 cd. (2026-10-11, druga sesja) — KROK 1 WDROŻENIA: adres API do konfiguracji ✅ (kierunek VPS/Docker).**
+
+Kontekst: user sam podniósł kierunek infrastruktury („czemu coś nie zrobimy żeby przenieść na vps? albo jakiś docker czy coś?"), a wcześniej zawetował powrót do zamówień. Sprawdzone fakty: Docker **29.4.1 zainstalowany, ale Docker Desktop wyłączony**; brak `Dockerfile`; adres API `http://localhost:5143` wpisany na sztywno w **11 liniach** Weba. Blokery VPS: (1) lokalny adres — w kontenerze/na VPS `localhost` = ta sama maszyna, a API i strona to dwa procesy; (2) brak logowania. Rekomendacja asystenta (przyjęta): wynieść adres API do **konfiguracji** — na ekranie ZERO zmian.
+
+**Zmiany (3 kroki):**
+1. `src\Shop.Web\appsettings.json` — nowy klucz `"ApiUrl": "http://localhost:5143"`.
+2. `src\Shop.Web\Program.cs` — `builder.Services.AddHttpClient();` → `var apiUrl = builder.Configuration["ApiUrl"] ?? "http://localhost:5143";` + `builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiUrl) });`.
+3. **11 linii w 3 stronach** — usunięte `http://localhost:5143/` (zostaje `api/...`, dokleja je `BaseAddress`): `Products.razor` (6), `Orders.razor` (1), `OrderDetails.razor` (4). `launchSettings.json` **NIE ruszony**.
+
+**Dowód:** build **0 błędów / 0 ostrzeżeń** + apka działa na `/products`, `/orders`, `/orders/1` bez różnicy na ekranie. Od teraz adres API zmienia się w JEDNYM miejscu (`appsettings.json`), bez dotykania kodu.
+
+**⚠️ Lekcje formy:**
+- **JSON:** user **podmienia ostatni wpis** zamiast dopisać nowy klucz (ustawił `"AllowedHosts": "http://localhost:5143"`, klucza `ApiUrl` nie było) → przy `appsettings.json`/każdym JSON podawać CAŁY plik po zmianie (jak dla `.razor`). Po pokazaniu całości — OK.
+- **Ctrl+H:** nazwy z panelu VS („Szybkie zastępowanie"/„Szukaj") NIE trafiły — user: „nie ma tu czegoś takiego… **wystarczyło dawać ente**". Przy zmianach czysto mechanicznych dawać prostą drogę (zaznacz fragment → Delete) albo proponować naniesienie przez asystenta.
+
+**Zmienione:** `src\Shop.Web\appsettings.json`, `src\Shop.Web\Program.cs`, `3× src\Shop.Web\Components\Pages\*.razor`.
+
+⏭️ **Następny krok wdrożenia (Krok 2):** Docker — `Dockerfile` + `docker-compose` (API + strona w kontenerach lokalnie); wymaga włączonego Docker Desktop. Ostatecznie VPS = osobna sesja przez SSH. ⚠️ Wciąż **brak logowania** — dodać przed publicznym VPS.
