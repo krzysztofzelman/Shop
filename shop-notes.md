@@ -687,3 +687,11 @@ Pytanie otwierające: „co dalej robimy pod vps? jak pomysł na sesję?". User 
 **Zmienione/nowe:** `src\Shop.Web\AuthState.cs` (nowy), `src\Shop.Web\Components\Pages\Login.razor` (nowy), `src\Shop.Web\Components\Layout\AuthNav.razor` (nowy), `src\Shop.Web\Lang.cs`, `src\Shop.Web\Program.cs`, `src\Shop.Web\appsettings.json`, `src\Shop.Web\Components\Pages\Products.razor`, `src\Shop.Web\Components\Layout\NavMenu.razor`.
 
 ⏭️ **Zostało:** **krok 8 — brama w API** (bez hasła `curl` dostaje `401`, nie skasuje produktu), potem **wdrożenie na VPS** (osobna sesja przez SSH: klon repo, `docker compose up --build -d`, otwarcie portu 5107, potem nginx + domena + HTTPS), a przy okazji drobiazg **pola ceny** (`149,99` → `14999`).
+
+---
+
+**⏭️ USTALENIA NA NASTĘPNĄ SESJĘ (dopięte 2026-10-11 na koniec Dnia 21, na wyraźne życzenie usera: „zapisz sobie i na git również").**
+
+1. **Krok 8 zaczynamy od OMÓWIENIA kroku** — najpierw opis słowami (co ma się stać, co będzie widać na ekranie, czego jeszcze nie ma), a kod dopiero po „rozumiem". To stały układ przy nowym etapie/funkcji.
+
+2. **Osobna sesja na UTRWALENIE ZROZUMIENIA kodu i plików** — user: „**na koniec musimy pogadać o zrozumieniu kodu plików itd. przydałaby się taka sesja bo mocno idziemy do przodu a wiedza musi się trochę uleżeć a sporo ostatnio tego było**". Sens: NIE nowy kod, tylko czytanie JEGO plików — mapa „co gdzie leży" (Web / Api / Shared, `Components\Pages` vs `Components\Layout`), kto z kogo korzysta, i 1 zagadka na raz, tempo dyktuje user. Zaplanowane po kroku 8.
