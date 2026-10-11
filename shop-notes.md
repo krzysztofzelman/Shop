@@ -586,3 +586,20 @@ Cel: na `/orders/{id}` dwie linie Myszki → **jeden wiersz** `Myszka | 3 | 49,9
 **⏭️ DO OGRODZENIA NA NASTĘPNĄ SESJĘ — ROZBIÓR `GroupedItems()`:** user: „to hardcore ten kod jak dla mnie… działać to działa, sprawdzałem, build wstaje, nie ma błędów, funkcja działa. ale zapisz sobie, żeby ze mną ogarnąć ten kod". Rozbiór **od zera, po jednym kawałku** (3 części): **(1)** `var result = new List<OrderItem>();` + strażnik `if (items == null) return result;`; **(2)** `bool found = false;` + zewnętrzna pętla `foreach (var item in items)`; **(3)** wewnętrzna pętla `foreach (var row in result)` + `if (row.ProductId == … && row.Price == …)` → dolicz ilość / dopisz nowy wiersz. Ściana usera = **4 rzeczy naraz** (nowa lista-wynik, pętla w pętli, `&&`, doliczanie do wiersza); dwie z nich ma już z Magazynu (`foreach`, `bool found` + `if`), nowe są: **pętla w pętli** i **`&&`**. Metoda: NIE zadawać pytań kontrolnych, iść kawałkami na JEGO „dalej" → `feedback/user-gates-progress-himself.md`.
 
 **Zmienione:** `src\Shop.Web\Components\Pages\OrderDetails.razor` (+29), `database\shop.db` (dane z testów).
+
+---
+
+**DZIEŃ 20 (2026-10-11, niedziela) — ZWIJANIE POZYCJI POTWIERDZONE NA EKRANIE ✅; ROZBIÓR `GroupedItems()` ODŁOŻONY (kod za gęsty).**
+
+Start: user „jaki pomysł na dzisiejsza sesje nauki?" → status (`Shop` czyste @ `aa72886` = `origin/master`) → rekomendacja: domknięcie zwijania (klik-test + rozbiór `GroupedItems()` kawałkami); lżejsza alternatywa: 1 zagadka na tym kodzie. User: „ok".
+
+**✅ KLIK-TEST ZWIJANIA ZALICZONY** (wisząca weryfikacja z Dnia 19 cd. ZAMKNIĘTA): user: „tak zwineło sie w jeden wiersz sumuje sie wszystko działa" → na `/orders/1` linie Myszki zlały się w JEDEN wiersz, ilości zsumowane. Cała funkcja (metoda + tabela linia 26 + licznik `Pozycje:` linia 39) potwierdzona end-to-end na ekranie.
+
+**Krok 2 — rozbiór `GroupedItems()` (linie 110–134): kawałek 1 podany** (linie 110–117: `result` = pusta lista wynikowa, strażnik `if (items == null) return result;`, pętla po `items`). User: „**to jest za trudne**" → **STOP** (wina asystenta za rozmiar kawałka: 4 linie + `List<OrderItem>`/`null`/`result` naraz), przypomniane KONKRETNE osiągnięcie (zwijanie działa, build 0/0), wybór A (jedna linia 124) / B (STOP) / C (zagadka).
+
+**⚠️ DIAGNOZA USERA (najważniejsze z dnia):** user: „**a to ja wiem że metoda pozwala sumować te same produkty z tą samą ceną, bo ceny nie możemy edytować. kod moim zdaniem jest za gruby żebym tak go złapał. czytam to i mało co ogarniam z tego**" → user **rozumie PO CO i WARUNEK** (jego jedno zdanie = dosłownie **linia 122** `if (row.ProductId == item.ProductId && row.Price == item.Price)`), a barierą jest **GĘSTOŚĆ kodu** (jeden blok ~25 linii), nie pojęcia. Redukcja pokazana: w całej metodzie NOWE jest tylko **pętla w pętli**; reszta (lista, `foreach`, `if`, `+`, `new`) = znane z `Dodaj()` w Magazynie.
+- **⚠️ Lekcja formy:** rozbiór takiego bloku dzielić na **~2 linie**, a zaczynać od warunku, który user SAM potrafi powiedzieć — wtedy kod „przykleja się" do jego zdania.
+
+**DECYZJA USERA — dzień zamknięty:** „ja bym to zostawił na razie, później można wrócić do tej funkcji albo tłumaczenia kodu po czasie. zróbmy opcję B" → rozbiór `GroupedItems()` **ODŁOŻONY** (kod zostaje, działa), dzień domknięty notatką + commitem.
+
+**Zmienione:** tylko `Shop\shop-notes.md` (kod bez zmian).
