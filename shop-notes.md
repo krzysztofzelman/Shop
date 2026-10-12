@@ -695,3 +695,27 @@ Pytanie otwierające: „co dalej robimy pod vps? jak pomysł na sesję?". User 
 1. **Krok 8 zaczynamy od OMÓWIENIA kroku** — najpierw opis słowami (co ma się stać, co będzie widać na ekranie, czego jeszcze nie ma), a kod dopiero po „rozumiem". To stały układ przy nowym etapie/funkcji.
 
 2. **Osobna sesja na UTRWALENIE ZROZUMIENIA kodu i plików** — user: „**na koniec musimy pogadać o zrozumieniu kodu plików itd. przydałaby się taka sesja bo mocno idziemy do przodu a wiedza musi się trochę uleżeć a sporo ostatnio tego było**". Sens: NIE nowy kod, tylko czytanie JEGO plików — mapa „co gdzie leży" (Web / Api / Shared, `Components\Pages` vs `Components\Layout`), kto z kogo korzysta, i 1 zagadka na raz, tempo dyktuje user. Zaplanowane po kroku 8.
+
+---
+
+**DZIEŃ 22 (2026-10-12, poniedziałek) — KROK 9 W TOKU: omówienie ✅ + kawałek 1 ✅ (hasło dla API). Sesja przerwana na chwilę przez usera.**
+
+**Krok 9 — NAJPIERW omówienie słowami (zgodnie z ustaleniem z Dnia 21), kod dopiero po „ok to idzmy dalej".** Cel jednym zdaniem: **API ma przestać wykonywać polecenia od kogoś, kto nie podał hasła — nawet gdy ominie stronę.** Kotwica na własnym kodzie: `@if (!Auth.IsLoggedIn)` w `Products.razor` to **zasłona tylko na ekranie** („brama pilnuje drzwi, a okno — API — stoi otwarte": `curl -X DELETE` nie widzi strony i dziś kasuje produkt).
+
+Trzy kawałki (po jednym na wiadomość):
+1. **hasło dla API** — API musi znać to samo hasło co strona,
+2. **brama w API** — przed wykonaniem czegokolwiek sprawdzenie hasła w nagłówku żądania; brak/złe → `401`, nic się nie dzieje,
+3. **strona dokleja nagłówek do każdego żądania** — jedno miejsce w `Shop.Web\Program.cs` (nie 20 poprawek w `.razor`) + `Orders.razor` dostaje tę samą blokadę co `Products.razor`.
+
+Żądanie HTTP rozłożone literalnie: **linia z metodą i adresem → nagłówki (`Nazwa: wartość`) → treść**; hasło jedzie jako JEDEN nagłówek (`X-Secret: dev123`) — ten sam, który user wpisze ręcznie do `curl`-a. **Dowód końcowy:** `curl` bez nagłówka → `401` i produkt zostaje; ten sam `curl` z nagłówkiem → działa. **Czego NIE ma:** kont użytkowników, tokenów, dat wygaśnięcia, HTTPS — jedno hasło dla wszystkich. ⚠️ Zapowiedziane z góry: przy `401` strona pokaże „Ładowanie" bez końca (to wyjątek z API, nie zawieszenie) — normalnie nie dojdzie do tego stanu, bo strona bez logowania nie wysyła żądań.
+
+**Dwa pytania usera w trakcie omówienia (dobre pytania, nie objaw niezrozumienia):**
+
+- **„gdzie są przechowywane hasła w bazie danych czy w kodzie?"** → **ani tam, ani tam — w PLIKU KONFIGURACYJNYM**: `Shop\src\Shop.Web\appsettings.json`, klucz `SecretKey` = `dev123`, czytany kodem `Config["SecretKey"]` (`Login.razor`). Nie baza, bo baza trzyma DANE, które się zmieniają (produkty, zamówienia) — nie ma hasła po czym wyszukiwać ani sumować; API nie ma tabeli „Users" i jej nie robimy. Na przyszłość (duże apki, nie dziś): w bazie leży **odcisk (hash) + sól**, nigdy samo hasło.
+- **„czy tam może być to hasło na vps i git jeśli aplikacja będzie wrzucona na vps?"** → **dwa środowiska, dwie wartości.** `dev123` w gicie **JEST OK** (wartość deweloperska, jawna = nie sekret; kogoś z `dev123` na jego PC nic nie daje). Na VPS: `git clone` przywozi plik z `dev123`, ale kontener dostaje **zmienną środowiskową** `SecretKey=<prawdziwe>`, która **nadpisuje plik** — tym samym wzorcem co `ConnectionStrings__ShopDb` w `docker-compose.yml`. Prawdziwe hasło zapisane **tylko na serwerze** w pliku `.env` (Compose czyta go sam), **nie w gicie**. Zasada: *co jest w gicie, widzi cały świat* — dlatego prawdziwe hasło nie wchodzi ani do `appsettings.json`, ani wpisane wprost do `docker-compose.yml` (ten też jest w repo). ⚠️ **Do zrobienia w sesji VPS:** dopisać `.env` do `Shop\.gitignore` (dziś są tam tylko `bin/`, `obj/`, `.vs/`, `*.user`, `body.json`).
+
+**KAWAŁEK 1 ✅:** `Shop\src\Shop.Api\appsettings.json` — dopisany klucz `"SecretKey": "dev123"`, **podany CAŁY plik** (user podmienia ostatni wpis zamiast dopisywać klucz — całość jest bezpieczniejsza); `read_file` potwierdził wartość zgodną z `Shop.Web`. Efektu w przeglądarce jeszcze nie ma — **API zna hasło, ale nikt go jeszcze nie pyta**.
+
+**Zmienione:** `src\Shop.Api\appsettings.json`.
+
+⏭️ **ZOSTAŁO (następna sesja): kawałek 2** — brama w `Shop\src\Shop.Api\Program.cs`. ⚠️ Zapowiedzieć userowi PRZED wpisaniem: **po tym kroku strona przestanie działać (każde żądanie dostanie `401`) aż do kawałka 3** — to nie awaria, to dowód, że brama łapie. Potem **kawałek 3** — `HttpClient` w `Shop\src\Shop.Web\Program.cs` wysyła nagłówek + blokada `Shop\src\Shop.Web\Components\Pages\Orders.razor`. Dalej (osobne sesje): utrwalenie zrozumienia kodu, VPS przez SSH, drobiazg pola ceny (`149,99` → `14999`).
