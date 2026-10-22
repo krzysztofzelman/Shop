@@ -762,3 +762,12 @@ builder.Services.AddScoped(sp =>
 **Zmienione:** `src\Shop.Api\Program.cs`, `src\Shop.Web\Program.cs`, `src\Shop.Web\Components\Pages\Orders.razor`.
 
 ⏭️ **ZOSTAŁO:** (1) test `/orders` bez logowania + `curl` `401` (dowód bramy), (2) osobna sesja utrwalająca zrozumienie kodu, (3) VPS przez SSH, (4) drobiazg pola ceny (`149,99` → `14999`).
+
+---
+
+**DZIEŃ 23 cd. — KROK 9 ZWERYFIKOWANY W CAŁOŚCI (2026-10-22).**
+
+- **Blokada `/orders` ✅:** user: „1 potwierdzam" (po wylogowaniu strona pokazuje sam żółty panel, bez tabeli i bez „Ładowanie").
+- **Brama w API ✅ — dowód z `curl`, sprawdzony przez asystenta:** `curl -i http://localhost:5143/api/Product` → `HTTP/1.1 401 Unauthorized` + `Unauthorized`; `curl -i -H "X-Secret: dev123" …` → `HTTP/1.1 200 OK` + `[{"id":3,"name":"Myszka","quantity":29,"price":49.99}]`.
+
+**KROK 9 ZAMKNIĘTY ✅ — logowanie jest gotowe pod wystawienie na VPS.** Zostaje: sesja utrwalająca zrozumienie kodu, VPS przez SSH, pole ceny (`149,99` → `14999`).
