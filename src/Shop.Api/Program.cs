@@ -15,6 +15,20 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+string secret = app.Configuration["SecretKey"] ?? "brak-klucza";
+
+app.Use(async (context, next) =>
+{
+    string given = context.Request.Headers["X-Secret"].ToString();
+    if (given != secret)
+    {
+        context.Response.StatusCode = 401;
+        await context.Response.WriteAsync("Unauthorized");
+        return;
+    }
+    await next();
+});
+
 app.UseAuthorization();
 
 app.MapControllers();
@@ -26,7 +40,7 @@ using (SqliteConnection connection = new SqliteConnection(cs))
     command.CommandText = "CREATE TABLE IF NOT EXISTS Products (Id INTEGER PRIMARY KEY AUTOINCREMENT, Name TEXT, Quantity INTEGER, Price REAL)";
     command.ExecuteNonQuery();
 }
-using (SqliteConnection connection = new SqliteConnection (cs))
+using (SqliteConnection connection = new SqliteConnection(cs))
 {
     connection.Open();
     SqliteCommand command = connection.CreateCommand();

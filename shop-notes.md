@@ -719,3 +719,46 @@ Trzy kawałki (po jednym na wiadomość):
 **Zmienione:** `src\Shop.Api\appsettings.json`.
 
 ⏭️ **ZOSTAŁO (następna sesja): kawałek 2** — brama w `Shop\src\Shop.Api\Program.cs`. ⚠️ Zapowiedzieć userowi PRZED wpisaniem: **po tym kroku strona przestanie działać (każde żądanie dostanie `401`) aż do kawałka 3** — to nie awaria, to dowód, że brama łapie. Potem **kawałek 3** — `HttpClient` w `Shop\src\Shop.Web\Program.cs` wysyła nagłówek + blokada `Shop\src\Shop.Web\Components\Pages\Orders.razor`. Dalej (osobne sesje): utrwalenie zrozumienia kodu, VPS przez SSH, drobiazg pola ceny (`149,99` → `14999`).
+
+---
+
+**DZIEŃ 23 (2026-10-22, czwartek) — KROK 9 DOMKNIĘTY W KODZIE: brama w API + nagłówek po stronie klienta + blokada `/orders`. Powrót po 10 dniach przerwy.**
+
+Start sesji: stan sprawdzony samemu (`origin/master` = `f7d0d4c`, drzewo czyste, `SecretKey` w `Shop.Api` jest, ale nikt go nie pytał) → rekomendacja = dokończyć krok 9; user wybrał bramę w API i poprosił o wyjaśnienie „na prosty język".
+
+**KAWAŁEK 2 ✅ — brama w `Shop\src\Shop.Api\Program.cs`** (między `if (app.Environment.IsDevelopment())` a `app.UseAuthorization()`):
+
+- `string secret = app.Configuration["SecretKey"] ?? "brak-klucza";` — hasło z `appsettings.json`; fallback celowo NIE pusty, żeby brak klucza zamykał bramę, a nie wpuszczał bez hasła.
+- `app.Use(async (context, next) => { ... })` — jedno miejsce dla KAŻDEGO żądania; `next` = „przepuść dalej".
+- `context.Request.Headers["X-Secret"].ToString()` — brak nagłówka daje pusty napis, więc `!=` zadziała.
+- `given != secret` → `StatusCode = 401` + `WriteAsync("Unauthorized")` + **`return;`** — `return` jest kluczowe: bez niego API odmówiłoby na papierze i poszło dalej do `next()`.
+- Kolejność: `app.Use` przed `app.MapControllers()` — brama wcześniej w łańcuchu niż trasy. Skutek uboczny (poprawny): `/openapi` w dev też dostaje `401`.
+
+**KAWAŁEK 3 cz. 1 ✅ — nagłówek w `Shop\src\Shop.Web\Program.cs`:** rejestracja `HttpClient` z jednej linii zamieniona na blok:
+
+```csharp
+string secret = builder.Configuration["SecretKey"] ?? "brak-klucza";
+
+builder.Services.AddScoped(sp =>
+{
+    var client = new HttpClient { BaseAddress = new Uri(apiUrl) };
+    client.DefaultRequestHeaders.Add("X-Secret", secret);
+    return client;
+});
+```
+
+`DefaultRequestHeaders` = nagłówki doklejane do KAŻDEGO żądania tym klientem ⇒ `Products.razor`, `Orders.razor`, `OrderDetails.razor` i wszystkie POST/PUT/DELETE dostają `X-Secret` bez zmiany w `.razor`. Wartość musi być identyczna jak w API (`dev123` w obu `appsettings.json`).
+
+**KAWAŁEK 3 cz. 2 ✅ — blokada `Shop\src\Shop.Web\Components\Pages\Orders.razor`:** `@inject AuthState Auth`; `@if (!Auth.IsLoggedIn)` → żółty panel `LoginRequired` + link `SignIn`, `else` → dotychczasowa tabela (wcięta o poziom); strażnik `if (!Auth.IsLoggedIn) { return; }` w `OnInitializedAsync`, żeby bez logowania strona nie pytała API.
+
+**Dowód:** `dotnet build Shop.slnx` → 0 błędów, 0 ostrzeżeń. User: „logowałem się działa", tabela produktów pokazuje cenę `49,99` ⇒ nagłówek doszedł do API i brama wpuściła. ⚠️ **NIE PRZETESTOWANE:** `/orders` po wylogowaniu (panel zamiast tabeli) — **pierwsza rzecz następnej sesji**, razem z dowodem `curl` bez nagłówka → `401`.
+
+**BŁĄD DNIA — podwójna wklejka całego pliku:** w `Shop.Api\Program.cs` wklejone dwie kopie jedna w drugą (dowód: `command.ExecuteNonQuery();using Microsoft.Data.Sqlite;` w jednej linii) ⇒ 12 błędów z JEDNEJ przyczyny („`builder`/`app`/`secret`/`cs`/`connection`/`command` już użyta", „`Microsoft.Data.Sqlite` używany jak typ", „Oczekiwano znaku `}`"). Lekcja: czytać PIERWSZY błąd, nie wszystkie; wklejać przez `Ctrl+A` → `Delete` → wklej. User: „mój błąd przy wklejaniu".
+
+**Lekcja 2 — `AddScoped(sp => { ... })`:** zapis PRZEPISU, nie robota; wykonuje się dopiero, gdy strona pierwszy raz prosi o `HttpClient`. Wcześniej jedno wyrażenie („od razu oddaj klienta"), teraz dwa kroki (zbuduj → dopisz nagłówek → `return`), stąd klamry.
+
+**Lekcja 3 — konsola przeglądarki:** `Information: Normalizing '_blazor'`, `WebSocket connected …?id=…` i `browserLink [Violation] Permissions policy` to NIE błędy (dwa pierwsze = sesja Blazora wstała, trzeci = dopisek Visual Studio przy F5). Prawdziwy błąd = czerwony `Error:`.
+
+**Zmienione:** `src\Shop.Api\Program.cs`, `src\Shop.Web\Program.cs`, `src\Shop.Web\Components\Pages\Orders.razor`.
+
+⏭️ **ZOSTAŁO:** (1) test `/orders` bez logowania + `curl` `401` (dowód bramy), (2) osobna sesja utrwalająca zrozumienie kodu, (3) VPS przez SSH, (4) drobiazg pola ceny (`149,99` → `14999`).

@@ -1,34 +1,45 @@
 ﻿@page "/orders"
 @rendermode InteractiveServer
 @inject HttpClient Http
+@inject AuthState Auth
 
 <PageTitle>@Lang.T("Orders")</PageTitle>
 
 <h1>@Lang.T("Orders")</h1>
 
-@if (orders == null)
+@if (!Auth.IsLoggedIn)
 {
-    <p><em>@Lang.T("Loading")</em></p>
+    <div class="alert alert-warning">
+        @Lang.T("LoginRequired")
+        <a href="/login">@Lang.T("SignIn")</a>
+    </div>
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>@Lang.T("Date")</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var order in orders)
-            {
+    @if (orders == null)
+    {
+        <p><em>@Lang.T("Loading")</em></p>
+    }
+    else
+    {
+        <table class="table table-striped">
+            <thead>
                 <tr>
-                    <td><a href="/orders/@order.Id">@order.Id</a></td>
-                    <td>@(order.Date.ToString("dd.MM.yyyy"))</td>
+                    <th>Id</th>
+                    <th>@Lang.T("Date")</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var order in orders)
+                {
+                    <tr>
+                        <td><a href="/orders/@order.Id">@order.Id</a></td>
+                        <td>@(order.Date.ToString("dd.MM.yyyy"))</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
 }
 
 @code {
@@ -36,6 +47,11 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        if (!Auth.IsLoggedIn)
+        {
+            return;
+        }
+
         orders = await Http.GetFromJsonAsync<List<Order>>("api/Order");
     }
 }

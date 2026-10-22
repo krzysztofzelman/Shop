@@ -8,9 +8,16 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 var apiUrl = builder.Configuration["ApiUrl"] ?? "http://localhost:5143";
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(apiUrl) });
+string secret = builder.Configuration["SecretKey"] ?? "brak-klucza";
 
-builder.Services.AddScoped <AuthState>();
+builder.Services.AddScoped(sp =>
+{
+    var client = new HttpClient { BaseAddress = new Uri(apiUrl) };
+    client.DefaultRequestHeaders.Add("X-Secret", secret);
+    return client;
+});
+
+builder.Services.AddScoped<AuthState>();
 
 var app = builder.Build();
 
