@@ -86,7 +86,7 @@ else
 
     private string name = "";
     private int quantity;
-    private decimal price;
+    private string price = "";
     private int editingId;
 
     private async Task AddProduct()
@@ -95,7 +95,7 @@ else
         {
             Name = name,
             Quantity = quantity,
-            Price = price
+            Price = decimal.Parse(price.Replace(',','.'), System.Globalization.CultureInfo.InvariantCulture)
         };
         if (editingId == 0)
         {
@@ -113,7 +113,7 @@ else
     {
         name = product.Name;
         quantity = product.Quantity;
-        price = product.Price;
+        price = product.Price.ToString(System.Globalization.CultureInfo.InvariantCulture);
         editingId = product.Id;
     }
 
@@ -127,7 +127,7 @@ else
     {
         name = "";
         quantity = 0;
-        price = 0;
+        price = "";
         editingId = 0;
     }
 }
