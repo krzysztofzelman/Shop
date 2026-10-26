@@ -2,7 +2,13 @@ using Shop.Web.Components;
 
 using Shop.Web;
 
+using System.Globalization;
+
 var builder = WebApplication.CreateBuilder(args);
+var polish = new CultureInfo("pl-PL");
+CultureInfo.DefaultThreadCurrentCulture = polish;
+CultureInfo.DefaultThreadCurrentUICulture = polish;
+
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
