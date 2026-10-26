@@ -788,4 +788,6 @@ builder.Services.AddScoped(sp =>
 
 **Lekcja dnia:** `.env` to nie szyfrowanie, tylko „nie wkładaj tego do repo" — przed rootem serwera nie chroni (`cat /root/shop/.env`, `docker inspect`). Dodatkowo: publikowany port Dockera żyje POZA `ufw`, więc zamyka się go przypięciem do `127.0.0.1`.
 
-⏭️ **ZOSTAŁO:** (1) test logowania w przeglądarce na `http://31.3.218.196:5107/products` hasłem z `/root/shop/.env`, (2) domena + HTTPS (dziś hasło idzie po HTTP jawnym tekstem), (3) sesja utrwalająca zrozumienie kodu, (4) drobiazg pola ceny (`149,99` → `14999`).
+**TEST AKCEPTACYJNY ZALICZONY ✅ (user, przeglądarka):** „**dodało się. wylogowałem się, zalogowałem i produkt nadal jest**" — logowanie hasłem z `/root/shop/.env` działa, produkt `Klawiatura` przeżył wylogowanie i ponowne zalogowanie (nowa sesja Blazora). Dowód od strony serwera: `curl -H 'X-Secret: …' http://localhost:5143/api/Product` → `[{"id":1,"name":"Klawiatura","quantity":5,"price":149}]`, wolumen `shop_shop-data`, plik `/app/data/shop.db` (20 KB). **Wniosek:** dane są w bazie na serwerze, nie w sesji przeglądarki; bez wolumenu zniknęłyby przy restarcie kontenera.
+
+⏭️ **ZOSTAŁO:** (1) domena + HTTPS przez nginx (dziś hasło idzie po HTTP jawnym tekstem — to najsłabsze ogniwo), (2) sesja utrwalająca zrozumienie kodu, (3) drobiazg pola ceny (`149,99` → `14999`).
