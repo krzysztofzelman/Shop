@@ -5,6 +5,7 @@ services:
       dockerfile: src/Shop.Api/Dockerfile
     environment:
       - ConnectionStrings__ShopDb=Data Source=/app/data/shop.db
+      - SecretKey=${SecretKey:?brak SecretKey - utworz plik .env obok docker-compose.yml}
     volumes:
       - shop-data:/app/data
     ports:
@@ -16,6 +17,7 @@ services:
       dockerfile: src/Shop.Web/Dockerfile
     environment:
       - ApiUrl=http://shop-api:8080
+      - SecretKey=${SecretKey:?brak SecretKey - utworz plik .env obok docker-compose.yml}
     ports:
       - "5107:8080"
     depends_on:
