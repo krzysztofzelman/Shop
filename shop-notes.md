@@ -771,3 +771,21 @@ builder.Services.AddScoped(sp =>
 - **Brama w API ✅ — dowód z `curl`, sprawdzony przez asystenta:** `curl -i http://localhost:5143/api/Product` → `HTTP/1.1 401 Unauthorized` + `Unauthorized`; `curl -i -H "X-Secret: dev123" …` → `HTTP/1.1 200 OK` + `[{"id":3,"name":"Myszka","quantity":29,"price":49.99}]`.
 
 **KROK 9 ZAMKNIĘTY ✅ — logowanie jest gotowe pod wystawienie na VPS.** Zostaje: sesja utrwalająca zrozumienie kodu, VPS przez SSH, pole ceny (`149,99` → `14999`).
+
+---
+
+**DZIEŃ 24 — SHOP WDROŻONY NA VPS (2026-10-26, po 4 dniach przerwy).**
+
+**Najpierw teoria, bez kodu** (user: „na początku wyjaśnij co to jest ten .env ? co to jest zmienna środowiskowa ?"): zmienna środowiskowa = para nazwa+wartość podana URUCHOMIONEMU procesowi z zewnątrz (dowód w jego własnym `docker-compose.yml`: `ConnectionStrings__ShopDb`); `builder.Configuration` czyta kilka źródeł po kolei (appsettings.json → … → zmienne środowiskowe → linia poleceń), więc zmienna **nadpisuje plik**; `.env` = zwykły plik tekstowy z liniami `NAZWA=wartość`, czytany przez `docker compose` (nie przez aplikację), który podstawia `${...}` w compose.
+
+**KROK 1 — sekrety poza gitem ✅:** `Shop\.gitignore` + linia `.env` (dowód: `git check-ignore -v .env` → `.gitignore:6:.env`), `Shop\.dockerignore` + `.env`. Potem **`docker-compose.yml`: `- SecretKey=${SecretKey:?brak SecretKey …}` w OBU usługach** (`shop-api` i `shop-web`, bo Web dokleja nagłówek `X-Secret`). Znaczenie `:?` = compose **odmówi startu**, gdy `.env` nie ma — lepsze niż puste hasło. Lokalnie powstał `Shop\.env` z `SecretKey=dev123` (gitignored), `docker compose config` pokazał `SecretKey: dev123` przy obu usługach. Commit **`d569f4a`** wypchnięty.
+
+**KROK 2 — serwer ✅:** `git clone … /root/shop` → commit `d569f4a`; `printf 'SecretKey=…' > /root/shop/.env` + `chmod 600`; `git status --short` na serwerze **pusty** ⇒ git nie widzi `.env`. Hasło: **20 znaków losowych** (tylko litery i cyfry), wygenerowane na PC, pokazane userowi RAZ w czacie; w repo i w notatkach go NIE ma.
+
+**KROK 3 — start ✅:** `docker compose up --build -d` → obrazy zbudowane, sieć `shop_default`, wolumen `shop_shop-data`, kontenery `shop-shop-api-1` (5143→8080) i `shop-shop-web-1` (5107→8080) `Up`; `ufw allow 5107/tcp`. Testy na serwerze: API bez nagłówka **401**, z `X-Secret` **200**, strona **200**.
+
+**ZNALEZISKO DNIA — Docker omija `ufw`:** `curl` z PC na `http://31.3.218.196:5143/api/Product` zwrócił **401**, choć port miał być zamknięty — Docker publikuje porty własnymi regułami iptables, obok `ufw`. Poprawka: `ports: "127.0.0.1:5143:8080"` (API dostępne tylko z wnętrza serwera; strona i tak gada z API po nazwie usługi `shop-api` w sieci compose). Commit **`0b1a383`** → na serwerze `git pull` + `docker compose up -d` (kontener API przeładowany). Dowód po zmianie: `http://31.3.218.196:5107/products` → **200**, `http://31.3.218.196:5143/api/Product` → **brak odpowiedzi (timeout)**.
+
+**Lekcja dnia:** `.env` to nie szyfrowanie, tylko „nie wkładaj tego do repo" — przed rootem serwera nie chroni (`cat /root/shop/.env`, `docker inspect`). Dodatkowo: publikowany port Dockera żyje POZA `ufw`, więc zamyka się go przypięciem do `127.0.0.1`.
+
+⏭️ **ZOSTAŁO:** (1) test logowania w przeglądarce na `http://31.3.218.196:5107/products` hasłem z `/root/shop/.env`, (2) domena + HTTPS (dziś hasło idzie po HTTP jawnym tekstem), (3) sesja utrwalająca zrozumienie kodu, (4) drobiazg pola ceny (`149,99` → `14999`).
