@@ -799,3 +799,19 @@ builder.Services.AddScoped(sp =>
 ⏭️ **ZOSTAŁO:** (1) domena + HTTPS przez nginx (dziś hasło idzie po HTTP jawnym tekstem — to najsłabsze ogniwo), (2) sesja utrwalająca zrozumienie kodu.
 
 **DZIEŃ 24 ZAMKNIĘTY ✅ (2026-10-26).** Commity: `d569f4a` (sekrety: `.env` + `SecretKey` w compose) → `0b1a383` (port API na `127.0.0.1` — Docker omijał `ufw`) → `d1b861f` (notatki wdrożenia) → `9a8029e` (test akceptacyjny na VPS) → `43a6c4c` (poprawka pola ceny) → `199a608` (dane testowe bazy) → `9971edf` (wdrożenie ceny na VPS) → `d146d41` (kultura pl-PL) → `d3707c5` + `6d7f27a` (notatki + test kultury). Stan: serwer `/root/shop` na `d146d41`, oba kontenery `Up`, `http://31.3.218.196:5107/products` → `200`, polskie liczby (`259,9 zł`), dane w wolumenie `shop_shop-data`. Hasło bramy: `C:\Users\krzys\shop-vps-haslo.txt` (wartość NIE w repo i NIE w notatkach).
+
+---
+
+**DZIEŃ 25 — PRÓBA SESJI UTRWALAJĄCEJ, ZAMKNIĘTA BEZ KODU (2026-10-28).**
+
+**Punkt startowy (sprawdzony samemu):** `HEAD` = `origin/master` = `d070cfa`, drzewo czyste, serwer `/root/shop` na `d146d41`, `http://31.3.218.196:5107/products` → **200**, liczby po polsku (`259,9 zł`). Nic nie było zepsute.
+
+**Plan przyjęty („ok to jedziemy z rekomendacją"):** status → mapa 4 plików + zagadki → jedna przeróbka (kolumna **„Wartość"** = ilość × cena w `Products.razor`, wzorcem `OrderSum()` z `OrderDetails.razor`).
+
+**Co nie zadziałało:** mapa 4 plików podana TABELĄ („plik | co jest w środku") — user: „**w ogóle nie przemawia do mnie ta tabelka co przed chwilą napisałeś**". Ta sama treść opowiedziana jako **jedna ścieżka żądania** (strona → strażnik → `HttpClient` z `X-Secret` → brama `401` → kontroler → SQLite → JSON → wiersz tabeli, 8 kroków z numerami linii) przeszła bez uwag, a na pytanie „gdzie co jest, żebym mógł zobaczyć i sprawdzić" dostał listę **plik + numer linii + dosłowna treść** (6 bloków: `AuthState.cs`, oba `Program.cs`, `Products.razor`, `ProductController.cs`, konfiguracja).
+
+**Decyzja usera:** „**nie no to nie jest na dziś do ogarnięcia. jak nie masz jakiegoś innego pomysłu to skończmy sesję**" ⇒ dzień zamknięty **bez zmiany w kodzie** — zero nowych linii C#, brak builda, brak wdrożenia. Serwer i repo zostały bez zmian.
+
+**Wniosek na następny raz:** 4 pliki i cała ścieżka żądania naraz = za duża porcja na jeden wieczór. Utrwalanie dzielić na **JEDEN plik** (`Products.razor`, fragment formularz + tabela) albo od razu **jeden mały kawałek kodu** (kolumna „Wartość"), a nie mapa całej apki.
+
+**Kolejka bez zmian:** (1) kolumna „Wartość" w `Shop\src\Shop.Web\Components\Pages\Products.razor`, (2) domena + HTTPS przez nginx (hasło nadal idzie po HTTP jawnym tekstem), (3) utrwalanie kodu — małymi porcjami.
