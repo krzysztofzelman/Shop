@@ -884,7 +884,10 @@ Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma 
 **Poprawiona i przetestowana wersja:** `<td>@(product.Price * 1.23m) zł</td>`. Build czysty, na ekranie liczba = cena × 1,23 (bez zaokrąglenia).
 
 **Do zrobienia następnym razem:**
-1. zaokrąglenie do 2 miejsc po przecinku (`Math.Round(..., 2)` albo format `ToString("0.00")`) — teraz wychodzą 4 miejsca;
-2. wdrożenie kolumny „Brutto" na VPS — user sam, komendami z procedury Dnia 26 (`git pull --ff-only` + `docker compose up -d --build shop-web`).
+1. zaokrąglenie do 2 miejsc po przecinku (`Math.Round(..., 2)` albo format `ToString("0.00")`) — teraz wychodzą 4 miejsca.
+
+**Wdrożenie kolumny „Brutto" na VPS ✅ (2026-11-02, ZROBIONE PRZEZ USERA):** `git pull --ff-only` na serwerze (`8d23761` → `4b4276a`, 3 pliki) + `docker compose up -d --build shop-web`. Dowód odczytany samemu: na serwerze `4b4276a`, oba kontenery `running`, obraz `shop-shop-web` świeży, strona `200`, API z zewnątrz `000`. Test na żywej wersji ZALICZONY przez usera: „na vps widze zmiana jest dodane i działa".
+
+**Nowy podział pracy (ustalony 2026-11-02):** `git add` + `git commit` + `git push` oraz komendy wdrożeniowe na VPS robi USER; asystent pisze sekcję notatek, podaje gotową treść komunikatu commita i sprawdza stan serwera odczytem (`git log`, `docker compose ps`, `docker images`, `curl`).
 
 **Wniosek:** pierwszy fragment napisany bez gotowej linii — z błędem, który sam wyłapał przed buildem; trzy przyczyny błędu to trzy osobne luki, nie „nie umiem pisać".
