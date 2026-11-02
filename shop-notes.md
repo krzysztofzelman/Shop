@@ -863,3 +863,28 @@ kolumna **„Wartość"** (ilość × cena) w `Shop\src\Shop.Web\Components\Page
 Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma jej w bazie ani w modelu `Product`, liczy się dopiero przy rysowaniu tabeli, dlatego `AddProduct` i `EditProduct` zostały bez zmian.
 
 **Kolejka po Dniu 26:** (1) domena + HTTPS przez nginx (osobna sesja, przez SSH na serwerze; hasło nadal idzie po HTTP jawnym tekstem), (2) utrwalanie kodu — po JEDNYM pliku. Wdrożenie na VPS już zrobione, więc nie wraca do kolejki.
+
+---
+
+**DZIEŃ 26 cd. 3 (2026-11-02, wieczór) — kolumna „Brutto" NAPISANA SAMODZIELNIE (zadanie-weryfikator).**
+
+**Po co:** po pytaniu usera „czyli dobrze się uczę tak pisać jak teraz czy źle?" rozdzielone: dotychczasowe fragmenty były wpisywane z podanego kodu, więc dowodem nie są. Zadanie: napisać fragment BEZ gotowej linii. Wymaganie — kolumna „Brutto" = cena × 1,23 w `Products.razor`, prowadzenie krokami.
+
+**Co user napisał sam (poprawnie):**
+- `Lang.cs`: `{ "Gross", "Brutto" }` i `{ "Gross", "Gross" }` — wstawione jako OSTATNIE wpisy słowników, więc bez przecinka (dobrze, ostatni wpis przecinka nie ma);
+- `Products.razor`: `<th>@Lang.T("Gross")</th>` między `Total` a `Actions` — kolejność nagłówków zgodna z `<tbody>`.
+
+**Pierwsza próba komórki:** `<td>@(product. 1,23 * product.Price) zł</td>` — user sam zgłosił „wiem że jest nie tak, sprawdź co napisałem".
+
+**Trzy pułapki w jednym wyrażeniu:**
+1. po kropce musi stać NAZWA pola, nie liczba (`product.` + liczba → „oczekiwano nazwy");
+2. separator dziesiętny w KODZIE to kropka — przecinek żyje tylko w tekście z klawiatury (dlatego przy polu ceny jest `Replace(',', '.')`);
+3. `1.23` bez końcówki to `double`, a `Price` to `decimal` → `decimal * double` się nie kompiluje; potrzebne `1.23m`.
+
+**Poprawiona i przetestowana wersja:** `<td>@(product.Price * 1.23m) zł</td>`. Build czysty, na ekranie liczba = cena × 1,23 (bez zaokrąglenia).
+
+**Do zrobienia następnym razem:**
+1. zaokrąglenie do 2 miejsc po przecinku (`Math.Round(..., 2)` albo format `ToString("0.00")`) — teraz wychodzą 4 miejsca;
+2. wdrożenie kolumny „Brutto" na VPS — user sam, komendami z procedury Dnia 26 (`git pull --ff-only` + `docker compose up -d --build shop-web`).
+
+**Wniosek:** pierwszy fragment napisany bez gotowej linii — z błędem, który sam wyłapał przed buildem; trzy przyczyny błędu to trzy osobne luki, nie „nie umiem pisać".

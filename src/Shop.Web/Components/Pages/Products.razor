@@ -50,6 +50,7 @@ else
                     <th>@Lang.T("Quantity")</th>
                     <th>@Lang.T("Price")</th>
                     <th>@Lang.T("Total")</th>
+                    <th>@Lang.T("Gross")</th>
                     <th>@Lang.T("Actions")</th>
                 </tr>
             </thead>
@@ -62,6 +63,7 @@ else
                         <td>@product.Quantity</td>
                         <td>@product.Price zł</td>
                         <td>@(product.Quantity * product.Price) zł</td>
+                        <td>@(product.Price * 1.23m) zł</td>
                         <td>
                             <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">@Lang.T("Delete")</button>
                             <button class="btn btn-warning btn-sm" @onclick="() => EditProduct(product)">@Lang.T("Edit")</button>

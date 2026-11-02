@@ -34,7 +34,8 @@ public static class Lang
         { "Password", "Hasło" },
         { "WrongPassword", "Złe hasło" },
         { "LoginRequired", "Zaloguj się, żeby zobaczyć tę stronę." },
-        { "Logout", "Wyloguj" }
+        { "Logout", "Wyloguj" },
+        { "Gross", "Brutto" }
     };
 
     private static readonly Dictionary<string, string> En = new()
@@ -67,7 +68,8 @@ public static class Lang
         { "Password", "Password" },
         { "WrongPassword", "Wrong password" },
         { "LoginRequired", "Sign in to view this page." },
-        { "Logout", "Log out" }
+        { "Logout", "Log out" },
+        { "Gross", "Gross" }
     };
 
     public static string T(string key)
