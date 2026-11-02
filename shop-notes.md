@@ -852,7 +852,9 @@ kolumna **„Wartość"** (ilość × cena) w `Shop\src\Shop.Web\Components\Page
 3. Pod tabelą: `<p>@Lang.T("Sum"): @ProductsSum() zł</p>`.
 4. Metoda `private decimal ProductsSum()` w bloku `@code`, tuż pod `OnInitializedAsync`: strażnik `products == null` → `return 0`, potem `decimal total = 0` + `foreach (var product in products)` → `total = total + product.Quantity * product.Price`, na końcu `return total`.
 
-**Test (user, 2026-11-02):** build czysty, kolumna liczy poprawnie, suma pod tabelą zgadza się z ręcznym dodaniem kolumny „Razem" z kilku wierszy. **Wdrożenie:** brak — na VPS nadal wersja z `154280d`.
+**Test (user, 2026-11-02):** build czysty, kolumna liczy poprawnie, suma pod tabelą zgadza się z ręcznym dodaniem kolumny „Razem" z kilku wierszy.
+
+**Wdrożenie na VPS ✅ (2026-11-02):** serwer stał na `d146d41` (Dzień 24) → `git pull --ff-only` → `8d23761`, potem `docker compose up -d --build shop-web`. Dowody: na serwerze `8d23761`, oba kontenery `running` (`shop-api` na `127.0.0.1:5143`, `shop-web` na `0.0.0.0:5107`), obraz `shop-shop-web` świeży, `http://31.3.218.196:5107/products` → `200`, API z zewnątrz `000` (nadal schowane). Test na żywej wersji ZALICZONY przez usera: „kolumna Razem i suma są, liczy dobrze".
 
 **Lekcja dnia — nazwa wzorca musi pasować do kontekstu.** User zapytał wprost: „dlaczego `OrderSum`? order to zamówienie a nie artykuł". Rozdzielone na jego plikach:
 - suma zamówienia = WIELE pozycji → pętla + licznik, stąd `OrderSum()` (`OrderDetails.razor`, linia 97);
@@ -860,4 +862,4 @@ kolumna **„Wartość"** (ilość × cena) w `Shop\src\Shop.Web\Components\Page
 - suma produktów = pętla, ale po produktach → nazwa `ProductsSum()`.
 Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma jej w bazie ani w modelu `Product`, liczy się dopiero przy rysowaniu tabeli, dlatego `AddProduct` i `EditProduct` zostały bez zmian.
 
-**Kolejka po Dniu 26:** (1) domena + HTTPS przez nginx (osobna sesja, przez SSH na serwerze), (2) wdrożenie dzisiejszej zmiany na VPS (`git pull --ff-only` + `docker compose up -d --build shop-web`), (3) utrwalanie kodu — po JEDNYM pliku.
+**Kolejka po Dniu 26:** (1) domena + HTTPS przez nginx (osobna sesja, przez SSH na serwerze; hasło nadal idzie po HTTP jawnym tekstem), (2) utrwalanie kodu — po JEDNYM pliku. Wdrożenie na VPS już zrobione, więc nie wraca do kolejki.
