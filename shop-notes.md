@@ -818,7 +818,7 @@ builder.Services.AddScoped(sp =>
 
 ---
 
-**DZIEŃ 26 (2026-11-02, poniedziałek) — SESJA INFORMACYJNA: stan sprawdzony, kod dopiero WIECZOREM.**
+**DZIEŃ 26 (2026-11-02, poniedziałek) — dzień informacyjny (audyt stanu), wieczór: JEDEN plik kodu (kolumna „Wartość" + suma produktów).**
 
 **Po co ta sekcja:** user wrócił po przerwie, poprosił o sprawdzenie notatek i rekomendację, ale musiał zamknąć sesję — wraca wieczorem. Ta sekcja jest punktem startu na wieczór, żeby nie odtwarzać stanu z pamięci.
 
@@ -838,4 +838,26 @@ kolumna **„Wartość"** (ilość × cena) w `Shop\src\Shop.Web\Components\Page
 - mapy całej aplikacji / 4 plików naraz (tak zamknął się DZIEŃ 25 — za duża porcja),
 - domeny + HTTPS przez nginx (osobna sesja, na serwerze przez SSH).
 
-**Zmienione w kodzie:** nic — zero nowych linii C#, brak builda, brak wdrożenia. Ta sesja to tylko sprawdzenie stanu i notatka.
+**Zmienione w kodzie:** nic w części dziennej — zero nowych linii C#, brak builda, brak wdrożenia. Dzień był tylko sprawdzeniem stanu i notatką.
+
+---
+
+**DZIEŃ 26 cd. (2026-11-02, wieczór) — KOD ZROBIONY I PRZETESTOWANY: kolumna „Wartość" + suma produktów.**
+
+**Zakres:** wszystkie zmiany w JEDNYM pliku `Shop\src\Shop.Web\Components\Pages\Products.razor`. API, kontroler, model `Product`, baza i `Lang.cs` — bez zmian. To ta sama zasada, która zamknęła DZIEŃ 25: jedna porcja = jeden plik.
+
+**Co doszło (4 miejsca):**
+1. Nagłówek kolumny: `<th>@Lang.T("Total")</th>` — klucz `Total` już był w `Lang.cs` (PL „Razem", EN „Total", ten sam co w `OrderDetails.razor`), więc zero nowych wpisów w słowniku.
+2. Komórka wiersza: `<td>@(product.Quantity * product.Price) zł</td>`.
+3. Pod tabelą: `<p>@Lang.T("Sum"): @ProductsSum() zł</p>`.
+4. Metoda `private decimal ProductsSum()` w bloku `@code`, tuż pod `OnInitializedAsync`: strażnik `products == null` → `return 0`, potem `decimal total = 0` + `foreach (var product in products)` → `total = total + product.Quantity * product.Price`, na końcu `return total`.
+
+**Test (user, 2026-11-02):** build czysty, kolumna liczy poprawnie, suma pod tabelą zgadza się z ręcznym dodaniem kolumny „Razem" z kilku wierszy. **Wdrożenie:** brak — na VPS nadal wersja z `154280d`.
+
+**Lekcja dnia — nazwa wzorca musi pasować do kontekstu.** User zapytał wprost: „dlaczego `OrderSum`? order to zamówienie a nie artykuł". Rozdzielone na jego plikach:
+- suma zamówienia = WIELE pozycji → pętla + licznik, stąd `OrderSum()` (`OrderDetails.razor`, linia 97);
+- wartość JEDNEGO produktu = jedno mnożenie dwóch pól, bez pętli → `@(product.Quantity * product.Price)`; wzorem była linia 35 z `OrderDetails.razor`, nie `OrderSum()`;
+- suma produktów = pętla, ale po produktach → nazwa `ProductsSum()`.
+Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma jej w bazie ani w modelu `Product`, liczy się dopiero przy rysowaniu tabeli, dlatego `AddProduct` i `EditProduct` zostały bez zmian.
+
+**Kolejka po Dniu 26:** (1) domena + HTTPS przez nginx (osobna sesja, przez SSH na serwerze), (2) wdrożenie dzisiejszej zmiany na VPS (`git pull --ff-only` + `docker compose up -d --build shop-web`), (3) utrwalanie kodu — po JEDNYM pliku.

@@ -49,6 +49,7 @@ else
                     <th>@Lang.T("Name")</th>
                     <th>@Lang.T("Quantity")</th>
                     <th>@Lang.T("Price")</th>
+                    <th>@Lang.T("Total")</th>
                     <th>@Lang.T("Actions")</th>
                 </tr>
             </thead>
@@ -60,6 +61,7 @@ else
                         <td>@product.Name</td>
                         <td>@product.Quantity</td>
                         <td>@product.Price zł</td>
+                        <td>@(product.Quantity * product.Price) zł</td>
                         <td>
                             <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">@Lang.T("Delete")</button>
                             <button class="btn btn-warning btn-sm" @onclick="() => EditProduct(product)">@Lang.T("Edit")</button>
@@ -68,6 +70,7 @@ else
                 }
             </tbody>
         </table>
+        <p>@Lang.T("Sum"): @ProductsSum() zł</p>
     }
 }
 
@@ -82,6 +85,20 @@ else
         }
 
         products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
+    }
+    private decimal ProductsSum()
+    {
+        if (products == null)
+        {
+            return 0;
+        }
+
+        decimal total = 0;
+        foreach (var product in products)
+        {
+            total = total + product.Quantity * product.Price;
+        }
+        return total;
     }
 
     private string name = "";
