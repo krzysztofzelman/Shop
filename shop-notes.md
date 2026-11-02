@@ -815,3 +815,27 @@ builder.Services.AddScoped(sp =>
 **Wniosek na następny raz:** 4 pliki i cała ścieżka żądania naraz = za duża porcja na jeden wieczór. Utrwalanie dzielić na **JEDEN plik** (`Products.razor`, fragment formularz + tabela) albo od razu **jeden mały kawałek kodu** (kolumna „Wartość"), a nie mapa całej apki.
 
 **Kolejka bez zmian:** (1) kolumna „Wartość" w `Shop\src\Shop.Web\Components\Pages\Products.razor`, (2) domena + HTTPS przez nginx (hasło nadal idzie po HTTP jawnym tekstem), (3) utrwalanie kodu — małymi porcjami.
+
+---
+
+**DZIEŃ 26 (2026-11-02, poniedziałek) — SESJA INFORMACYJNA: stan sprawdzony, kod dopiero WIECZOREM.**
+
+**Po co ta sekcja:** user wrócił po przerwie, poprosił o sprawdzenie notatek i rekomendację, ale musiał zamknąć sesję — wraca wieczorem. Ta sekcja jest punktem startu na wieczór, żeby nie odtwarzać stanu z pamięci.
+
+**Stan sprawdzony samemu (2026-11-02):**
+- repo `Shop`: `HEAD` = `origin/master` = **`d279b30`** (kartka `JAK-WROCIC.md`), drzewo czyste;
+- serwer: `http://31.3.218.196:5107/products` → **HTTP 200**;
+- ostatni wpis w notatkach przed tą sekcją: DZIEŃ 25 (2026-10-28, sesja utrwalająca zamknięta bez kodu);
+- nic nie było zepsute, serwer i dane stoją.
+
+**Ustalenie na wieczór — JEDNA rzecz, jeden plik:**
+kolumna **„Wartość"** (ilość × cena) w `Shop\src\Shop.Web\Components\Pages\Products.razor`, wzorcem `OrderSum()` z `OrderDetails.razor`. Sprawdzone w pliku: tabela ma dziś nagłówki `Id`, `Name`, `Quantity`, `Price`, `Actions` — kolumny „Wartość" NIE ma, czyli zadanie jest aktualne. Zero nowego tematu koncepcyjnego, widoczny wynik w tabeli.
+
+**Pierwszy krok wieczorem (5 minut, bez nadrabiania):**
+`Shop\Shop.slnx` → `Ctrl+F5` → `http://localhost:5107/products` → hasło **`dev123`** → zobacz, że tabela produktów działa. Dopiero potem kolumna „Wartość". (To sekcja 5 kartki `JAK-WROCIC.md`.)
+
+**Czego wieczorem NIE robimy:**
+- mapy całej aplikacji / 4 plików naraz (tak zamknął się DZIEŃ 25 — za duża porcja),
+- domeny + HTTPS przez nginx (osobna sesja, na serwerze przez SSH).
+
+**Zmienione w kodzie:** nic — zero nowych linii C#, brak builda, brak wdrożenia. Ta sesja to tylko sprawdzenie stanu i notatka.
