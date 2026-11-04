@@ -914,3 +914,27 @@ Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma 
 3. przystanek 5 — metody `AddProduct` (POST/PUT przez `editingId`), `EditProduct`, `DeleteProduct`, `Cancel`.
 
 **Wniosek:** barierą nie jest pojedyncza linia, tylko LICZBA PLIKÓW w jednej odpowiedzi. Jeden plik + jedna linia + jedno pytanie działa; trzy pliki naraz gaszą sesję.
+
+---
+
+**DZIEŃ 28 (2026-11-04, środa) — HTTPS NA WŁASNEJ DOMENIE ✅ (zero nowego kodu C#).**
+
+**Wybór dnia:** user: „co proponujesz na sesję? może https?" ⇒ sprawdzone samemu: `shop.kzelman.pl` MA już rekord `A → 31.3.218.196`, ale nginx nie miał wpisu ani certyfikatu (`https` → `SEC_E_WRONG_PRINCIPAL`, `http` → `301` w próżnię) ⇒ **domeny nie trzeba kupować**, dzień = czysta konfiguracja.
+
+**Zrobione (4 kroki):**
+
+1. `Shop\docker-compose.yml`: `- "5107:8080"` → `- "127.0.0.1:5107:8080"` — port przestaje być widoczny z internetu (Docker publikuje porty własnymi regułami POZA `ufw`), a na świat wystawia go nginx. Commit `2c29d0b` (razem z notatkami Dnia 27).
+2. `/etc/nginx/sites-available/shop.kzelman.pl` — `server_name shop.kzelman.pl` + `proxy_pass http://127.0.0.1:5107` + `proxy_http_version 1.1` i nagłówki `Upgrade` / `Connection "upgrade"` (Blazor Server trzyma WebSocket; bez nich strona się rysuje, ale przyciski nie reagują).
+3. `certbot --nginx -d shop.kzelman.pl --redirect` — certyfikat Let's Encrypt ważny do **2027-02-02**; certbot sam dopisał `listen 443 ssl`, ścieżki `fullchain.pem`/`privkey.pem`, `include options-ssl-nginx.conf` oraz drugi blok na porcie 80 z `301` na HTTPS. Odnowienie automatyczne (`certbot.timer` aktywny, najbliższe sprawdzenie 2026-11-05 08:00 UTC).
+4. Na serwerze `docker compose up -d` — `shop-shop-web-1` odtworzony z przypięciem `127.0.0.1:5107->8080`; `shop-shop-api-1` bez zmian.
+
+**Dowody:** `https://shop.kzelman.pl/products` → **200**; `http://shop.kzelman.pl/products` → **301**; `http://31.3.218.196:5107/products` → **000** (martwy — tak ma być); test w przeglądarce usera: „**chodzi działa logowanie jest wszystko ok**".
+
+**Wpadka (jedna, naprawiona):** wklejka `cat > plik <<'EOF'` urwała się przed linią zamykającą (prompt `>`), a ręczne wpisanie `~EOF` + `EOF` dodało `~EOF` jako 22. linię pliku → `nginx -t` = „unexpected end of file, expecting \";\" or \"}\"". Lekcja: `>` znaczy „czekam na koniec tekstu", a po zamknięciu **czytać plik**; śmieciowa linia usunięta przez `sed -i '/^~EOF$/d'`.
+
+**Czego user się dowiedział:** `127.0.0.1` = pętla zwrotna („ten komputer, na którym jesteś"), `0.0.0.0` = cały internet; kody `200` / `301` / `401` / `000`; nginx = program na portach 80/443, który trzyma certyfikat i przekazuje ruch do aplikacji w środku. Łańcuch na żywo: `przeglądarka → https://…:443 → nginx (certyfikat) → 127.0.0.1:5107 (kontener Shopa)`.
+
+**Zostało:**
+1. zaokrąglenie „Brutto" do 2 miejsc (`Products.razor`, linia 66 nadal `@(product.Price * 1.23m) zł`);
+2. przyciski w wierszu tabeli (`@onclick`, `() =>`) + przystanek 5 czytania (`AddProduct`, `EditProduct`, `DeleteProduct`);
+3. porządki opcjonalne: wpis `ufw allow 5107/tcp` jest już niepotrzebny (port zamknięty przez compose).
