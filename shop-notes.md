@@ -935,6 +935,24 @@ Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma 
 **Czego user się dowiedział:** `127.0.0.1` = pętla zwrotna („ten komputer, na którym jesteś"), `0.0.0.0` = cały internet; kody `200` / `301` / `401` / `000`; nginx = program na portach 80/443, który trzyma certyfikat i przekazuje ruch do aplikacji w środku. Łańcuch na żywo: `przeglądarka → https://…:443 → nginx (certyfikat) → 127.0.0.1:5107 (kontener Shopa)`.
 
 **Zostało:**
-1. zaokrąglenie „Brutto" do 2 miejsc (`Products.razor`, linia 66 nadal `@(product.Price * 1.23m) zł`);
+1. zaokrąglenie „Brutto" do 2 miejsc (`Products.razor`, linia 66) — **✅ ZROBIONE tego samego dnia, patrz „DZIEŃ 28 cd." niżej**;
 2. przyciski w wierszu tabeli (`@onclick`, `() =>`) + przystanek 5 czytania (`AddProduct`, `EditProduct`, `DeleteProduct`);
 3. porządki opcjonalne: wpis `ufw allow 5107/tcp` jest już niepotrzebny (port zamknięty przez compose).
+
+---
+
+**DZIEŃ 28 cd. (2026-11-04, wieczór) — zaokrąglenie kolumny „Brutto" do 2 miejsc (kod usera) + wdrożenie na VPS.**
+
+**Co user napisał sam** (`Shop\src\Shop.Web\Components\Pages\Products.razor`, linia 66): `@(product.Price * 1.23m) zł` → `@decimal.Round(product.Price * 1.23m, 2) zł`. Build czysty, test lokalny zaliczony („ok, działa"), na żywej wersji potwierdzone („ok, na VPS działa").
+
+**Droga wdrożenia:** commit **`94cc175`** → `git push` (`2819d74..94cc175`) → na serwerze `git pull --ff-only` + `docker compose up -d --build shop-web` → serwer na `94cc175`, strona `https://shop.kzelman.pl/products` → **200**. Uwaga: compose przebudował i odtworzył OBA kontenery (`shop-shop-api-1` też), więc sesja w otwartej karcie pada — trzeba zalogować się ponownie.
+
+**Nowe słowo:** `decimal.Round(liczba, ileMiejsc)` — metoda **wbudowana** typu `decimal`, NIE ma jej w projekcie. Woła się kropką po nazwie TYPU (`decimal.`), nie po zmiennej; nawiasy = „uruchom teraz".
+
+**Metody .NET poznane w projekcie** (dopisywać przy okazji, nie na zapas):
+
+- `decimal.Round(x, 2)` — zaokrągla liczbę do dwóch miejsc po przecinku (kolumna „Brutto", 2026-11-04).
+- `decimal.Parse(tekst, CultureInfo)` — zamienia napis na liczbę (naprawa pola ceny, 2026-10-26).
+- `string.Replace("a", "b")` — podmienia fragment tekstu (przecinek → kropka w cenie, 2026-10-26).
+
+**Zostało na następny raz:** przyciski w wierszu tabeli (`@onclick`, `() =>`) i przystanek 5 czytania (`AddProduct`, `EditProduct`, `DeleteProduct`).
