@@ -891,3 +891,26 @@ Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma 
 **Nowy podział pracy (ustalony 2026-11-02):** `git add` + `git commit` + `git push` oraz komendy wdrożeniowe na VPS robi USER; asystent pisze sekcję notatek, podaje gotową treść komunikatu commita i sprawdza stan serwera odczytem (`git log`, `docker compose ps`, `docker images`, `curl`).
 
 **Wniosek:** pierwszy fragment napisany bez gotowej linii — z błędem, który sam wyłapał przed buildem; trzy przyczyny błędu to trzy osobne luki, nie „nie umiem pisać".
+
+---
+
+**DZIEŃ 27 (2026-11-03, wtorek) — SESJA CZYTANIA KODU, zero nowego kodu.**
+
+**Wybór dnia:** na propozycję zaokrąglenia kolumny „Brutto" user odpowiedział „może poczytam, dawno nie czytałem" ⇒ zakres = JEDEN plik `Shop\src\Shop.Web\Components\Pages\Products.razor`, 5 przystanków w kolejności pliku, pytania zawsze o konkretną linię. Punkt startowy: `f296463`, drzewo czyste.
+
+**Co przeszliśmy:**
+
+1. **Przystanek 1 — nagłówek (linie 1–4).** `@page` = adres, `@rendermode` = strona „na żywo", `@inject` = wpuszczenie gotowego narzędzia pod imię (`HttpClient Http`, `AuthState Auth`).
+2. **Brama logowania (10–17).** Pytanie: gdzie użyte `Auth`? User wkleił blok żółtego panelu — lokalizacja TRAFIONA, kierunek warunku ODWROTNY („widzę jeśli autoryzacja jest poprawna"). Wytłumaczony wykrzyknik: `!` odwraca wartość, panel widzi NIEzalogowany, `else` = cała reszta dla zalogowanego. Słowa: `Auth` / `.IsLoggedIn` / `!` / `href="/login"` / klucze `LoginRequired` i `SignIn` („Zaloguj").
+3. **`@code` (79–89).** Na pytanie o drugie użycie `Auth` user wskazał linię 84 i odczytał poprawnie: „jeśli nie jest zalogowany (brak autoryzacji) wraca". Linia 87 `products = await Http.GetFromJsonAsync<List<Product>>("api/Product")` — „nie wiem co tu robi ta linijka"; rozłożona od prawej (adres → `Http` z `@inject` → `GetFromJsonAsync<List<Product>>` → `await` → przypisanie), plus odbiorca: tabela w linii 58 rysuje się tylko z tej zmiennej.
+4. **Pętla logowania w trzech plikach — PRZECIĄŻENIE.** `AuthState.cs` (`IsLoggedIn = false` na start) → `Login.razor` (`Auth.IsLoggedIn = true` po poprawnym haśle) → `Products.razor` (strażnik + pobranie). User: „**strasznie to pogmatwane**". Reset: wina formy (trzy pliki + `AddScoped` + F5 w jednej odpowiedzi), streszczone do 3 zdań, `AddScoped` i F5 jawnie wyrzucone z dnia.
+5. **Przystanek 4 — tabela (39–76), kawałki A/B/C.** A: `if (products == null)` → `Loading`; B: `<thead>` z 7 `<th>`, kolejność nagłówków musi odpowiadać kolejności `<td>`; C: `@foreach` + `<tr>` + komórki z `1.23m`. Na pytanie o różnicę `@if` vs `@foreach` user: „nie wiem" i doszło MYLENIE `null` z PUSTĄ LISTĄ ⇒ trzy stany ekranu: `null` → „Ładowanie"; pusta lista → nagłówki + `Suma: 0 zł`; lista z danymi → wiersze. `@if` decyduje RAZ, `@foreach` powtarza wiersz tyle razy, ile produktów.
+
+**STOP usera:** „**za dużo tego, przepaliło mi styki na dziś**" — koniec sesji bez kodu, bez commita z kodem.
+
+**Zostało na następny raz:**
+1. zaokrąglenie „Brutto" do 2 miejsc (linia 66 nadal `@(product.Price * 1.23m) zł`, na ekranie 4 miejsca po przecinku);
+2. przystanek 4 cd. — przyciski w wierszu (`@onclick` z `() => DeleteProduct(product.Id)` / `EditProduct(product)`);
+3. przystanek 5 — metody `AddProduct` (POST/PUT przez `editingId`), `EditProduct`, `DeleteProduct`, `Cancel`.
+
+**Wniosek:** barierą nie jest pojedyncza linia, tylko LICZBA PLIKÓW w jednej odpowiedzi. Jeden plik + jedna linia + jedno pytanie działa; trzy pliki naraz gaszą sesję.
