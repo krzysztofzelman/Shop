@@ -63,7 +63,7 @@ else
                         <td>@product.Quantity</td>
                         <td>@product.Price zł</td>
                         <td>@(product.Quantity * product.Price) zł</td>
-                        <td>@(product.Price * 1.23m) zł</td>
+                        <td>@decimal.Round(product.Price * 1.23m, 2) zł</td> 
                         <td>
                             <button class="btn btn-danger btn-sm" @onclick="() => DeleteProduct(product.Id)">@Lang.T("Delete")</button>
                             <button class="btn btn-warning btn-sm" @onclick="() => EditProduct(product)">@Lang.T("Edit")</button>
