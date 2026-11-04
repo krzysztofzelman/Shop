@@ -955,4 +955,6 @@ Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma 
 - `decimal.Parse(tekst, CultureInfo)` — zamienia napis na liczbę (naprawa pola ceny, 2026-10-26).
 - `string.Replace("a", "b")` — podmienia fragment tekstu (przecinek → kropka w cenie, 2026-10-26).
 
-**Zostało na następny raz:** przyciski w wierszu tabeli (`@onclick`, `() =>`) i przystanek 5 czytania (`AddProduct`, `EditProduct`, `DeleteProduct`).
+**Przystanek 4 cd. — przyciski w wierszu (omówione słowami, bez kodu):** szkielet `@if (products != null)` → `@foreach (var product in products)` → `<tr>` → kolumna akcji (linie 68–69); `@onclick` = atrybut Blazora, który uruchamia kod DOPIERO po kliknięciu (nie przy rysowaniu), w odróżnieniu od HTML-owego `onclick`; `() => …` = funkcja bez nazwy — `()` brak argumentów, `=>` ciało — dzięki niej wywołanie jest odroczone i pamięta `product` z danego obrotu pętli (klik w 3. wiersz → `Id` = 3); `EditProduct(product)` dostaje CAŁY obiekt, bo formularz potrzebuje nazwy, ilości i ceny, a nie samego `Id`. Dla kontrastu linie 32–33: `@onclick="AddProduct"` / `@onclick="Cancel"` — sama nazwa metody, bo nie trzeba nic przekazywać.
+
+**Zostało na następny raz:** przystanek 5 — `@code` (metody `AddProduct`, `EditProduct`, `DeleteProduct`, `Cancel`), czyli co się dzieje PO kliknięciu.
