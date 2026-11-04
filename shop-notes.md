@@ -958,3 +958,19 @@ Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma 
 **Przystanek 4 cd. — przyciski w wierszu (omówione słowami, bez kodu):** szkielet `@if (products != null)` → `@foreach (var product in products)` → `<tr>` → kolumna akcji (linie 68–69); `@onclick` = atrybut Blazora, który uruchamia kod DOPIERO po kliknięciu (nie przy rysowaniu), w odróżnieniu od HTML-owego `onclick`; `() => …` = funkcja bez nazwy — `()` brak argumentów, `=>` ciało — dzięki niej wywołanie jest odroczone i pamięta `product` z danego obrotu pętli (klik w 3. wiersz → `Id` = 3); `EditProduct(product)` dostaje CAŁY obiekt, bo formularz potrzebuje nazwy, ilości i ceny, a nie samego `Id`. Dla kontrastu linie 32–33: `@onclick="AddProduct"` / `@onclick="Cancel"` — sama nazwa metody, bo nie trzeba nic przekazywać.
 
 **Zostało na następny raz:** przystanek 5 — `@code` (metody `AddProduct`, `EditProduct`, `DeleteProduct`, `Cancel`), czyli co się dzieje PO kliknięciu.
+
+---
+
+**DZIEŃ 28 — PLAN „CO DALEJ" (rozmowa na koniec dnia): backend przed React.**
+
+**Zgłoszenie usera:** „kiedy będzie odpowiedni etap żeby przejść na React? bardzo mało ostatnio robimy w backendzie" — trafna diagnoza: ostatnie sesje to Blazor, HTTPS i czytanie kodu, a `Shop.Api` stoi na CRUD z Etapu 0.
+
+**Decyzja:** React NIE jest etapem tego projektu, tylko osobnym torem; najbliższe sesje kodowe idą ZA API. Warunki wejścia w React (wszystkie naraz): (1) podstawy JS/TS (React to JavaScript, nie C#), (2) API ma co pokazać (walidacja, paginacja, konta), (3) portfolio potrzebuje frontu innego niż Blazor — czyli głównie pod role fullstack, nie backend.
+
+**Kolejka backendowa (wartość na rozmowach, od najmniejszego):**
+1. **Walidacja i kody błędów** w `Shop.Api` — co się dzieje przy pustej nazwie albo cenie `-5` (dziś API przyjmie).
+2. **Paginacja i wyszukiwanie** — `GET /api/Product?page=2&search=mysz` (dziś zawsze cała lista).
+3. **Prawdziwe konta** — tabela `Users`, hash hasła, token zamiast jednego wspólnego `SecretKey` (największy brak).
+4. **Testy** — kilka testów jednostkowych kontrolera.
+
+**Uwaga na przyszłość:** Blazor już daje doświadczenie frontendowe (formularze, stan, komponenty, PL/EN), więc ewentualne przejście na React będzie różnicą składni i narzędzi, nie konceptów.

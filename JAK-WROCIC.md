@@ -23,9 +23,9 @@ Kartka na start po każdej przerwie — nie trzeba nic pamiętać ani niczego sz
 - `Shop\docker-compose.yml` + `Shop\.env` — Docker lokalnie
 
 ## 4. Co dalej (kolejka)
-1. Zaokrąglenie kolumny „Brutto" do 2 miejsc (`Products.razor` — dziś pokazuje 4 miejsca po przecinku).
-2. Przyciski w wierszu tabeli (`@onclick`, `() =>`) + przystanek 5 czytania: metody `AddProduct`, `EditProduct`, `DeleteProduct`.
-3. Utrwalanie kodu — po JEDNYM pliku na sesję.
+1. **Backend najpierw** (ustalone 2026-11-04): walidacja i kody błędów w API → paginacja i wyszukiwanie (`GET /api/Product?page=2&search=…`) → konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera.
+2. Czytanie kodu: przystanek 5 — `@code` w `Products.razor` (`AddProduct`, `EditProduct`, `DeleteProduct`, `Cancel`).
+3. Etap 2 — koszyk. React dopiero osobno, po JS/TS i po tym, jak API ma co pokazać.
 
 ## 5. Po przerwie: pierwszy krok to 5 minut
 Nie „nadrabianie" — jedno kliknięcie: `Ctrl+F5` → `http://localhost:5107/products` → zaloguj `dev123` → zobacz, że tabela działa. To wystarczy, żeby wejść z powrotem w projekt.
