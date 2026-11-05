@@ -974,3 +974,48 @@ Dodatkowo utrwalone: kolumna „Wartość" nie jest nigdzie zapisana — nie ma 
 4. **Testy** — kilka testów jednostkowych kontrolera.
 
 **Uwaga na przyszłość:** Blazor już daje doświadczenie frontendowe (formularze, stan, komponenty, PL/EN), więc ewentualne przejście na React będzie różnicą składni i narzędzi, nie konceptów.
+
+---
+
+**DZIEŃ 29 (2026-11-05, czwartek) — WALIDACJA W API, pierwszy kawałek backendu z kolejki (kod usera).**
+
+**Wybór dnia:** na propozycję (pkt 1 kolejki z `JAK-WROCIC.md` = walidacja w `Shop.Api`; lżejsza alternatywa = samo `() =>` w `Products.razor`) user odpowiedział dwoma słowami: „**walidacja, backend**" ⇒ czytanie `@code` zostaje na później.
+
+**Stan wyjściowy:** `Shop\src\Shop.Api\Controllers\ProductController.cs`, metoda `AddProduct(Product newProduct)` była `void` i przyjmowała WSZYSTKO — pusta nazwa, `Quantity = 0`, cena `-5` wchodziły do bazy bez oporu.
+
+**Co weszło (jeden plik, 4 zmiany):**
+
+1. `public void AddProduct` → `public IActionResult AddProduct` — metoda deklaruje, że oddaje odpowiedź HTTP. Po tej zmianie build CELOWO zrobił się czerwony (`CS0161` „nie wszystkie ścieżki zwracają wartość") — kompilator wskazał miejsce do uzupełnienia, zapowiedziane z góry.
+2. `return Ok();` na końcu ciała (w bloku `using`, po `ExecuteNonQuery()`) — szczęśliwa ścieżka: `200`.
+3. `if (string.IsNullOrWhiteSpace(newProduct.Name)) { return BadRequest("Name is required."); }` — pierwszy warunek, wpisany przez usera SAMODZIELNIE i poprawnie.
+4. Dwa warunki na liczby: `if (newProduct.Quantity <= 0)` i `if (newProduct.Price <= 0)`, każdy z własnym `BadRequest("… greater than zero.")`. Wszystkie trzy `if` stoją PRZED `string connectionString`, czyli przed połączeniem z bazą — zła decyzja nie zostawia śladu w tabeli.
+
+**Dwie pomyłki usera i jedna moja:**
+
+- `if (decimal.IsNullor, (newProduct.Quantity))` — przeniesienie metody sprawdzającej TEKST na LICZBĘ. Reguła: `IsNullOrWhiteSpace` istnieje tylko na `string`; liczba nie bywa „pusta", więc sprawdza się ją porównaniem.
+- `if decimal. (newProduct.Price.)` — brak nawiasów wokół warunku i kropka postawiona po polu zamiast po nazwie typu.
+- **Mój błąd:** pierwszy komunikat napisałem po polsku. W Shop obowiązuje: nazwy po EN **i** komunikaty API po EN; polskie teksty widoczne dla człowieka idą wyłącznie przez `Lang.cs` (PL+EN). Poprawione na `"Name is required."`.
+
+**Dowody (2026-11-05):**
+
+| test | wynik |
+|---|---|
+| `POST` z `"name":""` | `400` `Name is required` |
+| `POST` z `"quantity":0` | `400` `Quantity must be greater than zero.` |
+| `POST` danych poprawnych | `200`, wiersz w bazie |
+| `GET` bez nagłówka `X-Secret` | `401` (brama, nie walidacja) |
+
+User odtworzył to samo z PowerShella: `400`, `400`, `OK 200`. W bazie dev zostały dwa wiersze testowe: `Validation test` (id 7) i `PowerShell test` (id 8).
+
+**CZYTANIE KODÓW — 401 ≠ 400:** `401` = „nie znam Twojego hasła" (brama `X-Secret` w `Program.cs`); `400` = „hasło dobre, ale dane bez sensu" (walidacja w kontrolerze). Pierwszy test usera skończył się `401`, bo nagłówek nie dotarł do API — komenda była wklejona/rozjechana przy wpisywaniu, nie kod.
+
+**Test HTTP z PowerShella — jak to zrobić i skąd adres:** `Ctrl+F5` w VS → Windows → `powershell` (folder NIE ma znaczenia, bo to adres sieciowy, nie plik) → `$h = @{ "X-Secret" = "dev123" }` → jedna linia z `try { Invoke-RestMethod … } catch { … }`. Adres `http://localhost:5143/api/Product` rozbity na 4 części: `http://` protokół · `localhost` = ten komputer · `5143` port z `Shop\src\Shop.Api\Properties\launchSettings.json` · `/api/Product` trasa z `[Route("api/[controller]")]` (nazwa klasy bez `Controller`). `POST` idzie pod TEN SAM adres, którym `GET` czyta listę.
+
+**Nowe słowa:** `IActionResult` (oddaję odpowiedź HTTP), `Ok()` = `200`, `BadRequest("…")` = `400` z powodem — wszystkie WBUDOWANE, dziedziczone po `ControllerBase`, nie ma ich w projekcie. `string.IsNullOrWhiteSpace(x)` = „pusty albo same spacje" → `true`/`false`, więc wchodzi do `if` bez `==`.
+
+**Zostało:**
+1. ta sama walidacja w `UpdateProduct` (PUT) — dziś przez `PUT` da się wpisać cenę `-5`;
+2. usunięcie wierszy testowych: `Validation test` (id 7), `PowerShell test` (id 8) — przyciskiem na `/products`;
+3. dalsza kolejka backendu: paginacja i wyszukiwanie → konta → testy; przystanek 5 czytania (`@code` w `Products.razor`) nadal odłożony.
+
+**Wniosek:** warunek na TEKST i warunek na LICZBĘ to dwie różne rodziny — pytanie „tekst czy liczba?" rozstrzyga, czym sprawdzać. Struktura `if` + `return BadRequest(...)` była u usera poprawna od pierwszej próby; siadało wyłącznie narzędzie w środku warunku.

@@ -38,8 +38,21 @@ public class ProductController : ControllerBase
         return products;
     }
     [HttpPost]
-    public void AddProduct(Product newProduct)
+    public IActionResult AddProduct(Product newProduct)
     {
+        if (string.IsNullOrWhiteSpace(newProduct.Name))
+        {
+            return BadRequest("Name is required");
+        }
+        if (newProduct.Quantity <= 0)
+        {
+            return BadRequest("Quantity must be greater than zero.");
+        }
+        if (newProduct.Price <= 0)
+        {
+            return BadRequest("Price must be greater then zero");
+        }
+
         string connectionString = _config.GetConnectionString("ShopDb") ?? "";
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
@@ -50,6 +63,7 @@ public class ProductController : ControllerBase
             command.Parameters.AddWithValue("@Quantity", newProduct.Quantity);
             command.Parameters.AddWithValue("@Price", newProduct.Price);
             command.ExecuteNonQuery();
+            return Ok();
         }
     }
     [HttpDelete("{id}")]
