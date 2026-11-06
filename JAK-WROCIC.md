@@ -23,7 +23,7 @@ Kartka na start po każdej przerwie — nie trzeba nic pamiętać ani niczego sz
 - `Shop\docker-compose.yml` + `Shop\.env` — Docker lokalnie
 
 ## 4. Co dalej (kolejka)
-1. **Backend najpierw** (ustalone 2026-11-04): walidacja i kody błędów w API — `POST` ZROBIONY (2026-11-05: `AddProduct` oddaje `400`/`200`, trzy warunki), została ta sama walidacja w `UpdateProduct` (`PUT`) → paginacja i wyszukiwanie (`GET /api/Product?page=2&search=…`) → konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera.
+1. **Backend najpierw** (ustalone 2026-11-04): walidacja i kody błędów w API — `POST` ZROBIONY (2026-11-05) i `PUT` ZROBIONY (2026-11-06): `AddProduct` i `UpdateProduct` oddają `400`/`200` po trzech warunkach; została obsługa nieistniejącego `id` (`UPDATE` zmienia 0 wierszy → dziś fałszywe `200`, powinno `404`) → paginacja i wyszukiwanie (`GET /api/Product?page=2&search=…`) → konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera.
 2. Czytanie kodu: przystanek 5 — `@code` w `Products.razor` (`AddProduct`, `EditProduct`, `DeleteProduct`, `Cancel`).
 3. Etap 2 — koszyk. React dopiero osobno, po JS/TS i po tym, jak API ma co pokazać.
 

@@ -81,8 +81,20 @@ public class ProductController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    public void UpdateProduct(int id, Product product)
+    public IActionResult UpdateProduct(int id, Product product)
     {
+        if (string.IsNullOrWhiteSpace(product.Name))
+        {
+            return BadRequest("Name is required");
+        }
+        if (product.Quantity <= 0)
+        {
+            return BadRequest("Quantity must be greater than zero.");
+        }
+        if (product.Price <= 0)
+        {
+            return BadRequest("Price must be greater then zero");
+        }
         string connectionString = _config.GetConnectionString("ShopDb") ?? "";
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
@@ -94,6 +106,7 @@ public class ProductController : ControllerBase
             command.Parameters.AddWithValue("@Quantity", product.Quantity);
             command.Parameters.AddWithValue("@Price", product.Price);
             command.ExecuteNonQuery();
+            return Ok();
         }
     }
 }

@@ -1019,3 +1019,40 @@ User odtworzył to samo z PowerShella: `400`, `400`, `OK 200`. W bazie dev zosta
 3. dalsza kolejka backendu: paginacja i wyszukiwanie → konta → testy; przystanek 5 czytania (`@code` w `Products.razor`) nadal odłożony.
 
 **Wniosek:** warunek na TEKST i warunek na LICZBĘ to dwie różne rodziny — pytanie „tekst czy liczba?" rozstrzyga, czym sprawdzać. Struktura `if` + `return BadRequest(...)` była u usera poprawna od pierwszej próby; siadało wyłącznie narzędzie w środku warunku.
+
+---
+
+**DZIEŃ 30 (2026-11-06, piątek) — TA SAMA WALIDACJA W `UpdateProduct` (PUT); przy okazji wyszła luka: nieistniejący `id` → `200`.**
+
+**Cel dnia:** pkt 1 kolejki z `JAK-WROCIC.md` — walidacja w `PUT`. Rano okazało się, że user zdążył już zmienić nagłówek na `IActionResult` (sprawdzone `read_file`, nie z pamięci), więc zostały dwie rzeczy: trzy `if` i `return Ok()`.
+
+**Stan wyjściowy:** `Shop\src\Shop.Api\Controllers\ProductController.cs`, `UpdateProduct` przyjmowała wszystko: `PUT` z pustą nazwą albo ceną `-5` nadpisywał wiersz w bazie bez oporu.
+
+**Co weszło (jeden plik, dwie zmiany):**
+
+1. Trzy `if` — **dokładnie ten sam kod, co w `AddProduct`**, tylko parametr nazywa się `product`, nie `newProduct`. Bramki stoją przed `string connectionString`, czyli przed połączeniem z bazą.
+2. `return Ok();` na końcu ciała (w `using`, po `ExecuteNonQuery()`) — szczęśliwa ścieżka: `200`.
+
+**Błąd dnia — `CS0161` „nie wszystkie ścieżki zwracają wartość".** Po dodaniu trzech `if`-ów user zapomniał `return Ok()`. Wyjaśnienie na JEDNYM wywołaniu `PUT /api/Product/5` z `{"name":"Klawiatura","quantity":2,"price":129.50}`: kompilator wypisuje wszystkie trasy przejścia przez metodę — zła nazwa → `400`, zła ilość → `400`, zła cena → `400`, dobre dane → baza → **i tu trasa urywała się bez zwrotu**. Trzy `return` pokrywały trzy trasy złe, czwarta nie miała swojego. `void` nigdy tego błędu nie dawał, bo niczego nie obiecywał.
+
+**Dowody (PowerShell, 2026-11-06):**
+
+| test | wynik |
+|---|---|
+| `PUT` `/api/Product/1` z `"name":""` | `400` Złe żądanie (produkt o `id = 1` NIE istnieje — walidacja i tak zadziałała, bo stoi przed bazą) |
+| `PUT` `/api/Product/1` z danymi poprawnymi | cisza (`200`), ale **zero wierszy zmienionych** — takiego `id` nie ma |
+| `PUT` `/api/Product/6` z `"name":""` | `400` |
+| `PUT` `/api/Product/6` z `Klawiatura` / `5` / `129.50` | cisza (`200`), a `GET` pokazał `6 Klawiatura 5 129,5` — ilość `2` → `5` ✅ |
+
+**NAUKA DNIA — `UPDATE` na nieistniejący numer nie boli:** `UPDATE … WHERE Id=1` przy braku takiego wiersza zmienia ZERO wierszy, `ExecuteNonQuery()` oddaje `0`, a metoda i tak odpowiada `200`. Klient dostaje „udało się", choć nic się nie stało. Do tego nie ma jeszcze `404` („nie ma takiego produktu") — to pierwszy kandydat na następny krok backendu.
+
+**CZYTANIE KODÓW:** `401` = brama `X-Secret` (nagłówek nie dotarł), `400` = hasło dobre, dane odrzucone przez `if`, `200` = przeszło i baza przyjęła. Cisza po `PUT`/`POST` to sukces — `Ok()` bez treści nie ma czego wypisać.
+
+**Jak wygląda dobry test `PUT`:** najpierw `GET /api/Product` (jaka lista `id` naprawdę istnieje — nie zakładać `1`), potem `PUT` na istniejący numer, na końcu `GET` jako dowód zmiany. Numer brany z listy, nie z pamięci.
+
+**Zostało:**
+1. `404` (albo `NoContent`) gdy `UPDATE` zmienił zero wierszy — dziś taka sytuacja wygląda jak sukces;
+2. usunięcie wierszy testowych (`Validation test` id 7, `PowerShell test` id 8) przyciskiem na `/products`;
+3. dalej kolejka: paginacja i wyszukiwanie → konta (`Users`, hash, token) → testy kontrolera; przystanek 5 czytania (`@code` w `Products.razor`) nadal odłożony.
+
+**Wniosek:** ten sam wzorzec wszedł drugi raz — i o to chodziło: walidacja to nie wiedza o jednej metodzie, tylko powtarzalny układ (bramki przed bazą) plus pytanie „tekst czy liczba?". Nowością dnia nie był kod, tylko świadomość, że brak walidacji po stronie `id` daje fałszywe `200`.
