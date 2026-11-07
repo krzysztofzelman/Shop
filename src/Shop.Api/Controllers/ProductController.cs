@@ -105,7 +105,11 @@ public class ProductController : ControllerBase
             command.Parameters.AddWithValue("@Name", product.Name);
             command.Parameters.AddWithValue("@Quantity", product.Quantity);
             command.Parameters.AddWithValue("@Price", product.Price);
-            command.ExecuteNonQuery();
+            int rowsAffected = command.ExecuteNonQuery();
+            if (rowsAffected ==0)
+            {
+                return NotFound();
+            }
             return Ok();
         }
     }

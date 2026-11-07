@@ -1056,3 +1056,55 @@ User odtworzył to samo z PowerShella: `400`, `400`, `OK 200`. W bazie dev zosta
 3. dalej kolejka: paginacja i wyszukiwanie → konta (`Users`, hash, token) → testy kontrolera; przystanek 5 czytania (`@code` w `Products.razor`) nadal odłożony.
 
 **Wniosek:** ten sam wzorzec wszedł drugi raz — i o to chodziło: walidacja to nie wiedza o jednej metodzie, tylko powtarzalny układ (bramki przed bazą) plus pytanie „tekst czy liczba?". Nowością dnia nie był kod, tylko świadomość, że brak walidacji po stronie `id` daje fałszywe `200`.
+
+---
+
+**DZIEŃ 31 (2026-11-07, sobota) — `404`, gdy `UPDATE` zmienił zero wierszy (domknięcie wątku fałszywego `200`).**
+
+**Cel dnia:** pkt 1 kolejki z `JAK-WROCIC.md` — `PUT` na nieistniejący `id` ma odpowiadać `404`, a nie `200`.
+
+**Stan wyjściowy:** `Shop\src\Shop.Api\Controllers\ProductController.cs`, `UpdateProduct`: `command.ExecuteNonQuery();` bez odbioru wyniku i `return Ok();` zawsze na końcu.
+
+**Co weszło (jeden plik, 5 linii — 2 nowe):**
+
+```csharp
+int rowsAffected = command.ExecuteNonQuery();
+if (rowsAffected == 0)
+{
+    return NotFound();
+}
+return Ok();
+```
+
+⚠️ **Autorstwo:** ten fragment podał asystent na wyraźną prośbę usera („napisz mi to i wytłumacz"), więc to nie jest samodzielna wpiska — zadania tego dnia nie zaliczać jako dowodu umiejętności.
+
+**Dowody (PowerShell, 2026-11-07):**
+
+| test | wynik |
+|---|---|
+| `GET /api/Product` (lista prawdziwych `id`) | `3 Myszka`, `6 Klawiatura`, `7 Validation test`, `8 PowerShell test` |
+| `PUT /api/Product/999` (nie ma takiego) | **`404`** ✅ — wcześniej byłoby `200` |
+| kompilacja `Ctrl+Shift+B` | czysta, zero błędów |
+
+**NAUKA DNIA — skąd wiadomo, że `ExecuteNonQuery()` oddaje liczbę:** user doszedł do tego SAM przez **F12** na `command.ExecuteNonQuery()` i przyniósł kod z metadanych `Microsoft.Data.Sqlite`, w którym ostatnia linia to `return sqliteDataReader.RecordsAffected;`. Czyli metoda oddaje liczbę wierszy, których polecenie dotknęło (`int`). Wcześniejszy kod tę liczbę wyrzucał.
+
+**`rowsAffected` = „dotknięte wiersze"** (`rows` = wiersze, `affected` = dotknięte). Nazwa własna, nie z .NET — `1` znaczy „zmieniłem jeden wiersz", `0` znaczy „nie zmieniłem żadnego".
+
+**Trzy koszyki nazw w jednym pliku (rozmowa, nie kod):** każdą nazwę w `.cs` można przypisać do jednego z trzech miejsc —
+1. **język C#** — `public`, `if`, `return`, `using`, `int`, `string` (gramatyka, nie ma pliku do otwarcia);
+2. **platforma .NET/ASP.NET** — `IActionResult`, `Ok()`, `BadRequest()`, `NotFound()`, `SqliteConnection`, `ExecuteNonQuery()`, `GetConnectionString()` (ktoś napisał raz, Ty wołasz);
+3. **Twoje repo** — `ProductController`, `Product`, `_config`, `connectionString`, `"ShopDb"`, tabela `Products` (znikają razem z folderem `Shop`).
+
+**Rozstrzygacz: F12** — skacze do Twojego pliku = koszyk 3; otwiera plik `[z metadanych]` tylko do czytania = koszyk 2; nic nie skacze (słowo tylko podświetlone jako składnia) = koszyk 1. F12 działa **tylko z kursorem w środku nazwy** i najlepiej po jednym buildzie.
+
+**Czy programista sprawdza to za każdym razem?** Nie. Kolejność w prawdziwej pracy: (1) **dymek po najechaniu** — 1 sekunda, wystarcza w 90% przypadków; (2) **F12** — gdy nazwa jest nowa albo rzadko używana; (3) **źródło/dokumentacja** — gdy wynik zaskakuje (np. „dlaczego `UPDATE` na nieistniejącym `id` nie dało błędu?"). Najwięcej roboty robi IntelliSense (kropka po typie) i kompilator, nie pamięć.
+
+**`=` vs `==`:** jeden znak to rozkaz („zapisz wynik do zmiennej"), dwa znaki to pytanie („czy równe?") — drugi raz w `if`.
+
+**Zostało:**
+1. strona nie pokazuje błędu z API — `Products.razor` po `PutAsJsonAsync` nie sprawdza odpowiedzi, więc po `400`/`404` tabela po prostu milczy (kolejny krok);
+2. ta sama dziura w `DeleteProduct` — `DELETE` nieistniejącego `id` daje `200`;
+3. sprzątanie: wiersze testowe `Validation test` (id 7) i `PowerShell test` (id 8);
+4. dalej kolejka: paginacja i wyszukiwanie → konta → testy kontrolera; przystanek 5 czytania (`@code`) nadal odłożony.
+
+**Wniosek:** wątek „API kłamie o sukcesie" zamknięty w `PUT` — wzorzec **wynik → sprawdź → odpowiedź** (`rowsAffected` → `if` → `Ok()`/`NotFound()`) jest ten sam, którego potrzebuje `DELETE` i każda przyszła metoda zapisująca do bazy.
