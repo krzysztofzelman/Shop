@@ -23,7 +23,7 @@ Kartka na start po każdej przerwie — nie trzeba nic pamiętać ani niczego sz
 - `Shop\docker-compose.yml` + `Shop\.env` — Docker lokalnie
 
 ## 4. Co dalej (kolejka)
-1. **Backend najpierw** (ustalone 2026-11-04): walidacja i kody błędów w API — `POST` ZROBIONY (2026-11-05), `PUT` ZROBIONY (2026-11-06), nieistniejący `id` → `404` ZROBIONY (2026-11-07, `rowsAffected == 0`); dalej: strona pokazująca błąd z API (`Products.razor` nie sprawdza odpowiedzi po `PutAsJsonAsync`) → ta sama dziura w `DeleteProduct` (`DELETE` nieistniejącego `id` → `200`) → paginacja i wyszukiwanie (`GET /api/Product?page=2&search=…`) → konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera.
+1. **Backend najpierw** (ustalone 2026-11-04): walidacja i kody błędów — `POST` ZROBIONY (2026-11-05), `PUT` ZROBIONY (2026-11-06), `PUT` na nieistniejący `id` → `404` ZROBIONY (2026-11-07), `DELETE` na nieistniejący `id` → `404` ZROBIONY (2026-11-07), strona pokazuje błąd z API (pasek `Name is required` / `API Error: NotFound`, wspólna metoda `SetError`) ZROBIONE (2026-11-07 wieczór); dalej: paginacja i wyszukiwanie (`GET /api/Product?page=2&search=…`) → konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera.
 2. Czytanie kodu: przystanek 5 — `@code` w `Products.razor` (`AddProduct`, `EditProduct`, `DeleteProduct`, `Cancel`).
 3. Etap 2 — koszyk. React dopiero osobno, po JS/TS i po tym, jak API ma co pokazać.
 

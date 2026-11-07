@@ -29,12 +29,17 @@ else
                     <input @bind="price" placeholder="@(Lang.T("Price"))" class="form-control" />
                 </div>
                 <div class="col-md-3">
-                    <button class="btn btn-primary" @onclick="AddProduct">@(editingId == 0 ? Lang.T("Add") : Lang.T("Save") )</button>
+                    <button class="btn btn-primary" @onclick="AddProduct">@(editingId == 0 ? Lang.T("Add") : Lang.T("Save"))</button>
                     <button class="btn btn-secondary" @onclick="Cancel">@Lang.T("Cancel")</button>
                 </div>
             </div>
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
 
     @if (products == null)
     {
@@ -107,6 +112,7 @@ else
     private int quantity;
     private string price = "";
     private int editingId;
+    private string? error;
 
     private async Task AddProduct()
     {
@@ -116,15 +122,22 @@ else
             Quantity = quantity,
             Price = decimal.Parse(price.Replace(',','.'), System.Globalization.CultureInfo.InvariantCulture)
         };
+        HttpResponseMessage response;
         if (editingId == 0)
         {
-            await Http.PostAsJsonAsync("api/Product", newProduct);
+            response = await Http.PostAsJsonAsync("api/Product", newProduct);
         }
         else
         {
-            await Http.PutAsJsonAsync($"api/Product/{editingId}", newProduct);
+            response = await Http.PutAsJsonAsync($"api/Product/{editingId}", newProduct);
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            await SetError(response);
+            return;
         }
 
+        error = null;
         products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
 
@@ -138,7 +151,16 @@ else
 
     private async Task DeleteProduct(int id)
     {
-        await Http.DeleteAsync($"api/Product/{id}");
+        var response = await Http.DeleteAsync($"api/Product/{id}");
+        if (!response.IsSuccessStatusCode)
+        {
+            await SetError(response);
+        }
+        else
+        {
+            error = null;
+        }
+
         products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
     }
 
@@ -148,5 +170,14 @@ else
         quantity = 0;
         price = "";
         editingId = 0;
+    }
+
+    private async Task SetError(HttpResponseMessage response)
+    {
+        error = await response.Content.ReadAsStringAsync();
+        if (string.IsNullOrWhiteSpace(error) || error.StartsWith("{"))
+        {
+            error = "API Error: " + response.StatusCode;
+        }
     }
 }

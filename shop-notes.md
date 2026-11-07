@@ -1108,3 +1108,64 @@ return Ok();
 4. dalej kolejka: paginacja i wyszukiwanie → konta → testy kontrolera; przystanek 5 czytania (`@code`) nadal odłożony.
 
 **Wniosek:** wątek „API kłamie o sukcesie" zamknięty w `PUT` — wzorzec **wynik → sprawdź → odpowiedź** (`rowsAffected` → `if` → `Ok()`/`NotFound()`) jest ten sam, którego potrzebuje `DELETE` i każda przyszła metoda zapisująca do bazy.
+
+---
+
+**DZIEŃ 31 cd. (2026-11-07, sobota, wieczór) — strona przestaje milczeć: `400`/`404` z API widać na ekranie.**
+
+**Cel:** domknięcie wątku „API mówi prawdę, ale nikt tego nie słucha". `Products.razor` wysyłał `PostAsJsonAsync`/`PutAsJsonAsync`/`DeleteAsync` i wyrzucał odpowiedź, więc po `400`/`404` tabela po prostu się odświeżała.
+
+**Co weszło (jeden plik: `Shop\src\Shop.Web\Components\Pages\Products.razor`):**
+
+1. pole `private string? error;` — tekst komunikatu pokazywany nad tabelą;
+2. `AddProduct`: odpowiedź do `HttpResponseMessage response` (deklaracja PRZED `if`, bo pudełko wypełnia się w dwóch gałęziach POST/PUT), potem `IsSuccessStatusCode` → `await SetError(response)` → `return`;
+3. `DeleteProduct`: `var response = await Http.DeleteAsync(...)`, to samo sprawdzenie, a lista odświeża się TAKŻE po błędzie — „wiersz widmo" znika;
+4. `SetError(HttpResponseMessage response)` — jedna metoda na cały mechanizm: ciało → jeśli puste albo JSON → `"API Error: " + response.StatusCode`;
+5. markup pod formularzem: `@if (!string.IsNullOrWhiteSpace(error))` → `<div class="alert alert-danger">@error</div>`.
+
+**Dowody (user, przeglądarka):**
+
+| test | wynik |
+|---|---|
+| `PUT` z pustą nazwą (walidacja w kontrolerze) | pasek **`Name is required`** ✅ |
+| `DELETE` na wierszu usuniętym uprzednio w drugiej karcie | pasek **`API Error: NotFound`** ✅, wiersz znika z listy |
+
+**Lekcja 1 — odpowiedź HTTP to OBIEKT:** `HttpResponseMessage` = cała paczka (status + ciało + nagłówki); `IsSuccessStatusCode` = `true` tylko dla `2xx`; `response.Content.ReadAsStringAsync()` = tekst z ciała; `response.StatusCode` = numer/etykieta (`BadRequest`, `NotFound`).
+
+**Lekcja 2 — `NotFound()` NIE leci z pustym ciałem.** `[ApiController]` nad klasą kontrolera dokłada standardowy JSON (ProblemDetails: `{"type":…,"title":"Not Found","status":404,"traceId":…}`). Pierwsza wersja sprawdzała tylko `IsNullOrWhiteSpace(error)`, więc ten JSON wjechał do paska. `error.StartsWith("{")` = „to JSON, nie tekst dla człowieka" → pokazujemy krótkie `API Error: NotFound`.
+
+**Lekcja 3 — dlaczego poprawka wchodziła trzy razy (pytanie usera: „czemu to 3 raz poprawiać mam?"):** (1) pierwsza wersja opierała się na założeniu o pustym ciele — prawda wyszła dopiero na ekranie; (2) ten sam blok stał w DWÓCH metodach, więc każda poprawka musiała być wpisana dwa razy. Lekarstwo: jedna metoda `SetError` + dwa wywołania — następna zmiana w tym mechanizmie będzie w jednym miejscu.
+
+**Lekcja 4 — test gałęzi, której z jednej karty nie da się kliknąć:** dwie karty tej samej listy — pierwsza usuwa wiersz, druga (nieodświeżona) klika Usuń na tym samym wierszu → `404`. Bez tego `DELETE` na nieistniejącym `id` zostałby niesprawdzony.
+
+**Ściąga kodów HTTP** dopisana do notatek na prośbę usera („trochę minie, zanim się nauczę") — sekcja niżej.
+
+**Zostało:**
+
+1. sprzątanie wierszy testowych: `Validation test` (id 7), `PowerShell test` (id 8), `Delete test` — przyciskiem na `/products`;
+2. kolejka: paginacja i wyszukiwanie (`GET /api/Product?page=2&search=…`) → konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera;
+3. przystanek 5 czytania (`@code` w `Products.razor`) nadal odłożony.
+
+**Wniosek:** ten sam wzorzec (wynik → sprawdź → reakcja) zamknięty po OBU stronach — API oddaje `400`/`404`, strona je pokazuje. Nowość wieczoru nie była składniowa: chodziło o to, że odpowiedź HTTP jest obiektem, a nie ciszą, i że każdy błąd trzeba sprawdzić dokładnie w tej wersji, jaka przychodzi (JSON z frameworka ≠ pustka).
+
+---
+
+**ŚCIĄGA — kody odpowiedzi HTTP** (dopisane 2026-11-07 na własną prośbę: „trochę minie, zanim się nauczę").
+
+Trzy cyfry to RODZAJ odpowiedzi, nie ocena jakości. Pierwsza cyfra mówi, po czyjej stronie leży sprawa.
+
+| zakres | kto zawinił | co znaczy |
+|---|---|---|
+| **1xx** | — | informacyjne, w codziennej pracy się ich nie widuje |
+| **2xx** | nikt, sukces | `200` mam to / zrobiłem; `201` utworzyłem nowy wiersz; `204` zrobiłem, ale nie mam nic do powiedzenia (puste ciało) |
+| **3xx** | nikt, przenosiny | `301` na stałe pod inny adres (tak działa `http → https` na VPS); `304` nie zmieniło się, użyj kopii z cache |
+| **4xx** | wysyłający (Ty/przeglądarka) | `400` dane bez sensu (trzy `if` w kontrolerze); `401` brak hasła / nagłówka `X-Secret` (brama w `Program.cs`); `403` wiem, kto to, ale nie wolno; `404` nie ma takiego adresu albo wiersza (dziś: `rowsAffected == 0`); `422` składnia OK, biznesowo złe; `429` za dużo żądań w krótkim czasie |
+| **5xx** | serwer | `500` wyjątek w kodzie / padła baza; `502` nginx nie dostał sensownej odpowiedzi od aplikacji (typowo API nie wstało w Dockerze); `503` usługa niedostępna/przeciążona; `504` nginx czekał i się nie doczekał |
+
+**Najczęstsza pomyłka — trzy „nie wpuszczam":** `401` = nie wiem, kim jesteś; `403` = wiem, ale nie wolno; `404` = nie ma tego.
+
+**`000` z `curl` to nie kod HTTP** — to „nikt nie odpowiedział" (brak nasłuchu, zły port, firewall).
+
+**Warstwa, która odpowiedziała, jest ważniejsza niż sam numer:** przy `401` do kontrolera nic nie doszło (zatrzymała brama), przy `400` hasło dotarło i dane odrzucił `if` w metodzie.
+
+**Nasze API zwraca komunikat jako zwykły tekst** — `BadRequest("Name is required")` — a nie JSON typu `{ "error": { "code": ..., "message": ... } }`. JSON jest lepszy przy większej liczbie pól, ale to ulepszenie na później, nie teraz.
