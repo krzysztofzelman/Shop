@@ -1140,7 +1140,7 @@ return Ok();
 
 **Ściąga kodów HTTP** dopisana do notatek na prośbę usera („trochę minie, zanim się nauczę") — sekcja niżej.
 
-**WDROŻENIE NA VPS (2026-11-07, po commicie `a807087`):** na serwerze `git pull --ff-only` (`79e6573..a807087`), potem `docker compose up -d --build shop-api shop-web` (zmieniły się OBA projekty) — kontenery `Recreated`/`Started`, porty bez zmian (`127.0.0.1:5143` API, `127.0.0.1:5107` Web). Dowody z serwera: `API bez nagłówka` → **401** (brama żyje), `DELETE /api/Product/999` z nagłówkiem → **404** (nowy kod działa na produkcji), strona lokalnie **200**, publicznie `https://shop.kzelman.pl/products` → **200**.
+**WDROŻENIE NA VPS (2026-11-07, po commicie `a807087`):** na serwerze `git pull --ff-only` (`79e6573..a807087`), potem `docker compose up -d --build shop-api shop-web` (zmieniły się OBA projekty) — kontenery `Recreated`/`Started`, porty bez zmian (`127.0.0.1:5143` API, `127.0.0.1:5107` Web). Dowody z serwera: `API bez nagłówka` → **401** (brama żyje), `DELETE /api/Product/999` z nagłówkiem → **404** (nowy kod działa na produkcji), strona lokalnie **200**, publicznie `https://shop.kzelman.pl/products` → **200**. **Test usera na produkcji (ta sama data):** dodał `Test VPS` / `2` / `19,99`, `Zapisz` z pustą nazwą → pasek `Name is required`; ten sam wiersz usunięty w dwóch kartach → pasek `API Error: NotFound`. Obie gałęzie błędu działają tak samo lokalnie i na VPS.
 
 **Zostało:**
 
