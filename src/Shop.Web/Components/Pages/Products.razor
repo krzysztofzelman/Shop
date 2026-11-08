@@ -40,7 +40,10 @@ else
     {
         <div class="alert alert-danger">@error</div>
     }
-
+        <div class="d-flex gap-2 mb-3">
+           <input @bind="search" @bind:event="oninput" placeholder="@Lang.T("Search")" class="form-control" style="max-width: 300px;" />
+           <button class="btn btn-primary" @onclick="SearchProducts">@Lang.T("Search")</button>
+        </div>
     @if (products == null)
     {
         <p><em>@Lang.T("Loading")</em></p>
@@ -79,7 +82,7 @@ else
         </table>
         <p>@Lang.T("Sum"): @ProductsSum() zł</p>
         <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPage">@Lang.T("Previous")</button>
+            <button class="btn btn-outline-secondary btn-sm" disabled="@(currentPage == 1)" @onclick="PreviousPage">@Lang.T("Previous")</button>
             <span>@Lang.T("Page"): @currentPage</span>
             <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage">@Lang.T("Next")</button>
         </div>
@@ -89,10 +92,18 @@ else
 @code {
     private List<Product>? products;
     private int currentPage = 1;
+    private string search = "";
 
     private async Task LoadProducts()
     {
-        products = await Http.GetFromJsonAsync<List<Product>>($"api/Product?page={currentPage}");
+        string query = Uri.EscapeDataString(search);
+        products = await Http.GetFromJsonAsync<List<Product>>($"api/Product?page={currentPage}&search={query}");
+    }
+
+    private async Task SearchProducts()
+    {
+        currentPage = 1;
+        await LoadProducts();
     }
 
     protected override async Task OnInitializedAsync()

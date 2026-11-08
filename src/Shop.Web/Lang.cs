@@ -38,7 +38,8 @@ public static class Lang
         { "Gross", "Brutto" },
         { "Previous", "Poprzednia" },
         { "Next", "Następna" },
-        { "Page", "Strona" }
+        { "Page", "Strona" },
+        { "Search", "Szukaj" },
 
     };
 
@@ -74,9 +75,10 @@ public static class Lang
         { "LoginRequired", "Sign in to view this page." },
         { "Logout", "Log out" },
         { "Gross", "Gross" },
-        { "Previous", "Previous" },
+         { "Previous", "Previous" },
         { "Next", "Next" },
-        { "Page", "Page" }
+        { "Page", "Page" },
+        { "Search", "Search" },
     };
 
     public static string T(string key)

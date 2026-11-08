@@ -13,7 +13,7 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet]
-    public List<Product> GetProducts(int page =1)
+    public List<Product> GetProducts(int page =1, string search = "")
     {
         List<Product> products = new List<Product>();
         string connectionString = _config.GetConnectionString("ShopDb") ?? "";
@@ -24,7 +24,8 @@ public class ProductController : ControllerBase
         {
             connection.Open();
             SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, Quantity, Price FROM Products ORDER BY Id LIMIT @Take OFFSET @Skip";
+            command.CommandText = "SELECT Id, Name, Quantity, Price FROM Products WHERE Name LIKE @Search ORDER BY Id LIMIT @Take OFFSET @Skip";
+            command.Parameters.AddWithValue("@Search", "%" + search.Trim() + "%");
             command.Parameters.AddWithValue("@Take", pageSize);
             command.Parameters.AddWithValue("@Skip", skip);
             SqliteDataReader reader = command.ExecuteReader();

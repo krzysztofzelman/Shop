@@ -1203,3 +1203,36 @@ Cel dnia = pierwsza pozycja kolejki z `JAK-WROCIC.md`. Wyszukiwanie (`LIKE`) św
 5. strażnik `if (page < 1) { page = 1; }` — dziś `?page=0` oddaje to samo co strona 1, bo ujemny `OFFSET` baza traktuje jak zero.
 
 **Wniosek:** pierwszy raz w tym projekcie kawałek backendu i kawałek strony powstały w JEDNEJ sesji i zadziałały razem: API dostaje numer strony z adresu (`?page=2`), a strona sama dokleja go do swojego żądania (`$"api/Product?page={currentPage}"`).
+
+---
+
+## DZIEŃ 33 — wyszukiwanie: `?search=` + `LIKE` w SQL i pole „Szukaj" na stronie (2026-11-08, niedziela, druga sesja)
+
+Cel dnia = druga pozycja kolejki z `JAK-WROCIC.md` (user: „tak, bierzemy wyszukiwanie"), a na rozgrzewkę domknięcie resztki z Dnia 32.
+
+**Co weszło (3 pliki):**
+
+1. `Shop\src\Shop.Api\Controllers\ProductController.cs` — `GetProducts(int page = 1, string search = "")`; `CommandText` = `SELECT … FROM Products WHERE Name LIKE @Search ORDER BY Id LIMIT @Take OFFSET @Skip`; `command.Parameters.AddWithValue("@Search", "%" + search.Trim() + "%")` przed `@Take` / `@Skip`.
+2. `Shop\src\Shop.Web\Components\Pages\Products.razor` — (a) `disabled="@(currentPage == 1)"` na przycisku `Poprzednia` (resztka z Dnia 32); (b) pasek `d-flex` z `<input @bind="search" @bind:event="oninput">` i przyciskiem `@onclick="SearchProducts"`; (c) w `@code`: `private string search = "";`, w `LoadProducts()` — `string query = Uri.EscapeDataString(search);` i adres `$"api/Product?page={currentPage}&search={query}"`, nowa metoda `SearchProducts()` ustawiająca `currentPage = 1` i wołająca `LoadProducts()`.
+3. `Shop\src\Shop.Web\Lang.cs` — klucz `Search` w obu słownikach (`Szukaj` / `Search`).
+
+**Dane do testu:** 6 produktów wpuszczonych przez PowerShell (`Invoke-RestMethod -Method Post`, nagłówek `X-Secret`, `ConvertTo-Json -Compress`): `Laptop Dell`, `Laptop Lenovo`, `Mysz bezprzewodowa`, `Mysz przewodowa`, `Monitor 27 cali`, `Klawiatura mechaniczna` → `id` 12–17, razem 10 wierszy w bazie (mieści się na jednej stronie przy `pageSize = 10`).
+
+**Dowody:** build 0 błędów; na `/products` (hasło `dev123`) `laptop` → 2 wiersze, `mysz` → 3 (łapie też `Myszka`), `monitor` → 1, `xyz` → pusta tabela, puste pole + `Szukaj` → wszystkie 10. Test spacji: ` Monitor 27 cali` ze spacją z przodu → 0 wierszy, po `Trim()` → 1 wiersz (user: „działa, widzę że jest ok").
+
+**Lekcja 1 — `LIKE` + `%` = „zawiera".** `WHERE Name LIKE @Search` porównuje tekst wzorcem, a `%` znaczy „dowolny ciąg znaków, także pusty". `'%krzes%'` = nazwa zawiera `krzes`, `'%%'` = każda nazwa — dlatego puste pole nie potrzebuje osobnego `if`-a. Ograniczenie: wielkość liter ignorowana tylko dla ASCII (`Ł` ≠ `ł`).
+
+**Lekcja 2 — spacja w polu to ZNAK, nie formatowanie.** `search` oddaje tekst dokładnie tak, jak wpisany, więc wzorzec `'% Monitor 27 cali%'` żąda spacji na początku nazwy — a w bazie jej nie ma. `Trim()` obcina białe znaki z końców, nie ruszając środka.
+
+**Lekcja 3 — `Dictionary` + duplikat klucza = błąd RUNTIME, build zielony.** Po dopisaniu `Search` w obu słownikach zostały jeszcze raz `Previous` i `Next` → `ArgumentException: An item with the same key has already been added`, opakowany w `TypeInitializationException` („nie udało się zainicjalizować klasy `Lang`"), bo słownik jest polem `static`. Kompilator nie sprawdza unikalności kluczy — wychodzi dopiero przy pierwszym `Lang.T`. Kolejność wpisów nie ma znaczenia, unikalność klucza ma.
+
+**Lekcja 4 — markup i `@code` to JEDNA zmiana.** Pasek „Szukaj" wszedł do pliku, a blok `@code` jeszcze nie → 5× `CS0103` (`search` ×4, `SearchProducts` ×1). Każdy `@nazwa` w markupie musi być członkiem klasy wygenerowanej z `.razor`; markup i `@code` dostawać w jednym kroku, nie w częściach A/B/C.
+
+**Zostało:**
+
+1. wdrożenie na VPS — od Dnia 32 zmieniły się OBA projekty (paginacja + wyszukiwanie), więc `git pull --ff-only` → `docker compose up -d --build shop-api shop-web`;
+2. sprzątanie wierszy testowych: `Validation test` (id 7), `PowerShell test` (id 8), `Myszka` (id 3), `Klawiatura` (id 6) i 6 produktów z Dnia 33 (id 12–17) — przyciskiem `Usuń` na `/products` albo zostawić jako dane demonstracyjne;
+3. strażnik `if (page < 1) { page = 1; }` w `GetProducts` (dziś `?page=0` oddaje to samo co strona 1);
+4. kolejka `JAK-WROCIC.md`: konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera.
+
+**Wniosek:** wyszukiwanie przeszło całą drogę jednego kliknięcia — pole w `.razor` → `search` w `@code` → `?search=` w adresie → parametr `search` w metodzie kontrolera → `WHERE Name LIKE @Search` w SQL. Ten sam wzorzec co `@Take`/`@Skip` z Dnia 32: parametr w metodzie, `AddWithValue`, żadnego sklejania SQL-a z tekstem usera.
