@@ -13,16 +13,20 @@ public class ProductController : ControllerBase
     }
 
     [HttpGet]
-    public List<Product> GetProducts()
+    public List<Product> GetProducts(int page =1)
     {
         List<Product> products = new List<Product>();
         string connectionString = _config.GetConnectionString("ShopDb") ?? "";
+        int pageSize = 10;
+        int skip = (page - 1) * pageSize;
 
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
             connection.Open();
             SqliteCommand command = connection.CreateCommand();
-            command.CommandText = "SELECT Id, Name, Quantity, Price FROM Products";
+            command.CommandText = "SELECT Id, Name, Quantity, Price FROM Products ORDER BY Id LIMIT @Take OFFSET @Skip";
+            command.Parameters.AddWithValue("@Take", pageSize);
+            command.Parameters.AddWithValue("@Skip", skip);
             SqliteDataReader reader = command.ExecuteReader();
             while (reader.Read())
             {

@@ -1171,3 +1171,34 @@ Trzy cyfry to RODZAJ odpowiedzi, nie ocena jakości. Pierwsza cyfra mówi, po cz
 **Warstwa, która odpowiedziała, jest ważniejsza niż sam numer:** przy `401` do kontrolera nic nie doszło (zatrzymała brama), przy `400` hasło dotarło i dane odrzucił `if` w metodzie.
 
 **Nasze API zwraca komunikat jako zwykły tekst** — `BadRequest("Name is required")` — a nie JSON typu `{ "error": { "code": ..., "message": ... } }`. JSON jest lepszy przy większej liczbie pól, ale to ulepszenie na później, nie teraz.
+
+---
+
+## DZIEŃ 32 — paginacja: `LIMIT`/`OFFSET` w API + przyciski stron na stronie (2026-11-08, niedziela)
+
+Cel dnia = pierwsza pozycja kolejki z `JAK-WROCIC.md`. Wyszukiwanie (`LIKE`) świadomie **odłożone**: user nie znał `WHERE`/`LIMIT`/`OFFSET`, więc zakres skrócony do samej paginacji (wybór „opcja A").
+
+**Co weszło (3 pliki):**
+
+1. `Shop\src\Shop.Api\Controllers\ProductController.cs` — `GetProducts(int page = 1)`; `int pageSize = 10;` + `int skip = (page - 1) * pageSize;`; `CommandText` z `ORDER BY Id LIMIT @Take OFFSET @Skip` i dwa `command.Parameters.AddWithValue`.
+2. `Shop\src\Shop.Web\Components\Pages\Products.razor` — pole `currentPage`, jedna metoda `LoadProducts()` zamiast trzech kopii `GetFromJsonAsync`, `PreviousPage()` / `NextPage()`, pasek stron pod tabelą (`Poprzednia` / `Strona: N` / `Następna`) z `disabled="@(currentPage == 1)"`.
+3. `Shop\src\Shop.Web\Lang.cs` — klucze `Previous`, `Next`, `Page` w obu słownikach (PL/EN).
+
+**Dowody:** build 0 błędów, 0 ostrzeżeń; `/api/Product` → 4 produkty, `/api/Product?page=2` → `[]` (czyli `OFFSET` realnie pomija); na `http://localhost:5107/products` (hasło `dev123`) widać `Strona: 1`, a `Następna` / `Poprzednia` zmieniają numer strony i zawartość tabeli. Przy 4 produktach i `pageSize = 10` strona 2 jest pusta — to poprawne, nie brak danych.
+
+**Lekcja 1 — cztery słowa SQL, nie nowy język.** `LIMIT @Take` = „oddaj najwyżej tyle wierszy", `OFFSET @Skip` = „pomiń tyle pierwszych", `ORDER BY Id` = „najpierw ustaw w kolejności" (bez tego strony mogłyby się nakładać), `LIKE` = „tekst pasuje do wzorca" (zostaje na kolejny dzień). `WHERE` user używał już wcześniej — `DELETE FROM Products WHERE Id = @Id` w linii 77 tego samego pliku.
+
+**Lekcja 2 — „nie widzę różnicy" ≠ „nie działa".** Po poprawnej zmianie tabela wyglądała identycznie, bo w bazie są 4 produkty przy `pageSize = 10`. Zanim szukać błędu w kodzie, policzyć wiersze i próg: dopiero `?page=2` → `[]` dowiodło, że `OFFSET` działa.
+
+**Lekcja 3 — silnik bez kierownicy.** Sama zmiana w SQL jest niewidoczna, dopóki na stronie nie ma czego kliknąć. Przyciski stron weszły w tej samej sesji i to one dały efekt na ekranie.
+
+**Lekcja 4 — dwa błędy z JEDNEJ przyczyny, oba ciche.** (a) po podmianie bloku zostało `command.Parameters.AddWithValue`, a zniknął `command.CommandText` — baza dostaje puste polecenie, `reader.Read()` od razu zwraca `false`, tabela pusta i ZERO komunikatu o błędzie; (b) pole `private List<Product>? products;` zadeklarowane dwa razy w `@code` → 6 komunikatów („Niejednoznaczność…", „Typ «Products» już zawiera definicję…") z jednej powtórzonej linii.
+
+**Zostało:**
+
+1. wyszukiwanie: `GET /api/Product?search=…` (`LIKE` + `%`, jedna linia SQL + jedno pole na stronie);
+2. wdrożenie na VPS — zmieniły się OBA projekty, więc `docker compose up -d --build shop-api shop-web`;
+3. sprzątanie wierszy testowych (`Validation test` id 7, `PowerShell test` id 8) przyciskiem na `/products`;
+4. strażnik `if (page < 1) { page = 1; }` — dziś `?page=0` oddaje to samo co strona 1, bo ujemny `OFFSET` baza traktuje jak zero.
+
+**Wniosek:** pierwszy raz w tym projekcie kawałek backendu i kawałek strony powstały w JEDNEJ sesji i zadziałały razem: API dostaje numer strony z adresu (`?page=2`), a strona sama dokleja go do swojego żądania (`$"api/Product?page={currentPage}"`).

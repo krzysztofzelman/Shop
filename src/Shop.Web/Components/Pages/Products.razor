@@ -78,11 +78,22 @@ else
             </tbody>
         </table>
         <p>@Lang.T("Sum"): @ProductsSum() zł</p>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-outline-secondary btn-sm" @onclick="PreviousPage">@Lang.T("Previous")</button>
+            <span>@Lang.T("Page"): @currentPage</span>
+            <button class="btn btn-outline-secondary btn-sm" @onclick="NextPage">@Lang.T("Next")</button>
+        </div>
     }
 }
 
 @code {
     private List<Product>? products;
+    private int currentPage = 1;
+
+    private async Task LoadProducts()
+    {
+        products = await Http.GetFromJsonAsync<List<Product>>($"api/Product?page={currentPage}");
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -91,7 +102,7 @@ else
             return;
         }
 
-        products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
+        await LoadProducts();
     }
     private decimal ProductsSum()
     {
@@ -138,7 +149,7 @@ else
         }
 
         error = null;
-        products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
+        await LoadProducts();
     }
 
     private void EditProduct(Product product)
@@ -161,7 +172,7 @@ else
             error = null;
         }
 
-        products = await Http.GetFromJsonAsync<List<Product>>("api/Product");
+        await LoadProducts();
     }
 
     private void Cancel()
@@ -179,5 +190,19 @@ else
         {
             error = "API Error: " + response.StatusCode;
         }
+    }
+    private async Task PreviousPage()
+    {
+        if (currentPage > 1)
+        {
+            currentPage--;
+            await LoadProducts();
+        }
+    }
+
+    private async Task NextPage()
+    {
+        currentPage++;
+        await LoadProducts();
     }
 }
