@@ -1236,3 +1236,21 @@ Cel dnia = druga pozycja kolejki z `JAK-WROCIC.md` (user: „tak, bierzemy wyszu
 4. kolejka `JAK-WROCIC.md`: konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera.
 
 **Wniosek:** wyszukiwanie przeszło całą drogę jednego kliknięcia — pole w `.razor` → `search` w `@code` → `?search=` w adresie → parametr `search` w metodzie kontrolera → `WHERE Name LIKE @Search` w SQL. Ten sam wzorzec co `@Take`/`@Skip` z Dnia 32: parametr w metodzie, `AddWithValue`, żadnego sklejania SQL-a z tekstem usera.
+
+---
+
+## DZIEŃ 33 cd. — wdrożenie na VPS: paginacja + wyszukiwanie weszły jednym `git pull` (2026-11-08, niedziela)
+
+**Dlaczego jedna operacja na dwa dni:** serwer stał na `a807087` (koniec Dnia 31), więc `git pull --ff-only` wciągnął JEDNOCZEŚNIE Dzień 32 (paginacja) i Dzień 33 (wyszukiwanie): 5 plików, 126 wstawek, 9 usunięć.
+
+**Przebieg (user wpisywał sam):**
+
+1. `ssh -i C:\Users\krzys\.ssh\vps_magazyn -p 2022 root@31.3.218.196` — prompt zmienił się na `root@vps16211:~#` (to jest znacznik „jestem na serwerze", nie na PC).
+2. `cd /root/shop` → `git pull --ff-only` → `a807087..15c122e`.
+3. `docker compose up -d --build shop-api shop-web` → build 34,9 s, oba obrazy zbudowane, oba kontenery odtworzone.
+
+**Dowody (odczytane przez asystenta, nie z meldunku):** `git log --oneline -1` na serwerze = `15c122e`; `docker compose ps` = `shop-shop-api-1` i `shop-shop-web-1` oba `Up`; `docker images` = świeże `shop-shop-api` / `shop-shop-web`; `curl.exe -s -o NUL -w "%{http_code}" https://shop.kzelman.pl/products` z PC = **200**.
+
+**Lekcja — dwa różne „wejścia", których nie wolno mieszać.** Pierwsza próba wdrożenia padła na `cd /root/shop` wpisanym w PowerShellu PC (`Cannot find path 'C:\root\shop'`), bo prompt `PS C:\WINDOWS\System32>` znaczy „wciąż na swoim komputerze". SSH = wejście NA MASZYNĘ kluczem (tylko user), hasło bramy = wejście DO APLIKACJI dla każdego odwiedzającego (z `/root/shop/.env`, lokalnie `dev123`). Ścieżka `/root/shop` istnieje wyłącznie po stronie serwera.
+
+**Zostało:** test wyszukiwania w przeglądarce na `https://shop.kzelman.pl/products` (hasło z `C:\Users\krzys\shop-vps-haslo.txt`; baza produkcyjna ma własne produkty, więc fragment nazwy brać z tabeli na ekranie), a w kolejce — sprzątanie wierszy testowych i strażnik `if (page < 1) { page = 1; }`.
