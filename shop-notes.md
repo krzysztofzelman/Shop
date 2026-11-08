@@ -1254,3 +1254,26 @@ Cel dnia = druga pozycja kolejki z `JAK-WROCIC.md` (user: „tak, bierzemy wyszu
 **Lekcja — dwa różne „wejścia", których nie wolno mieszać.** Pierwsza próba wdrożenia padła na `cd /root/shop` wpisanym w PowerShellu PC (`Cannot find path 'C:\root\shop'`), bo prompt `PS C:\WINDOWS\System32>` znaczy „wciąż na swoim komputerze". SSH = wejście NA MASZYNĘ kluczem (tylko user), hasło bramy = wejście DO APLIKACJI dla każdego odwiedzającego (z `/root/shop/.env`, lokalnie `dev123`). Ścieżka `/root/shop` istnieje wyłącznie po stronie serwera.
 
 **Zostało:** test wyszukiwania w przeglądarce na `https://shop.kzelman.pl/products` (hasło z `C:\Users\krzys\shop-vps-haslo.txt`; baza produkcyjna ma własne produkty, więc fragment nazwy brać z tabeli na ekranie), a w kolejce — sprzątanie wierszy testowych i strażnik `if (page < 1) { page = 1; }`.
+
+---
+
+## DZIEŃ 33 cd. 2 — dane do bazy PRODUKCYJNEJ przez API na serwerze + test na żywej wersji (2026-11-08, niedziela)
+
+**Dlaczego nie z PowerShellu na PC:** `docker-compose.yml` publikuje oba porty jako `127.0.0.1:…`, więc `shop-api` jest osiągalne **tylko z wnętrza serwera** (z zewnątrz wchodzi wyłącznie nginx po HTTPS). Z PC `http://31.3.218.196:5143` nie odpowiada.
+
+**Przebieg (user wpisywał sam, po SSH na serwer, w `/root/shop`):**
+
+1. `SECRET=$(grep '^SecretKey=' .env | cut -d= -f2)` — hasło bramy do zmiennej, bez wypisywania na ekran.
+2. `echo ${#SECRET}` — kontrola długości (`20` = jest; `0` = pusto i poleci `401`).
+3. Sześć razy `curl -s -X POST http://127.0.0.1:5143/api/Product -H "X-Secret: $SECRET" -H "Content-Type: application/json" -d '{"name":…,"quantity":…,"price":…}'`.
+4. `curl -s http://127.0.0.1:5143/api/Product -H "X-Secret: $SECRET"` — podgląd JSON.
+
+**Co weszło:** `Laptop Dell XPS`, `Laptop Lenovo ThinkPad`, `Mysz bezprzewodowa Logitech`, `Mysz przewodowa`, `Monitor 27 cali`, `Klawiatura mechaniczna` → `id` 6–11. Baza produkcyjna ma teraz 10 wierszy (wcześniej 4: `Klawiatura`, `Monitor`, `Słuchawki`, `Kamera  ` — w tej nazwie zostały spacje na końcu).
+
+**Dowody (odczytane przez asystenta, nie z meldunku):** `GET /api/Product` na serwerze = 10 pozycji; `?search=laptop` → 2; `?search=mysz` → 2; `?search=Kamera` → 1. Test w przeglądarce na `https://shop.kzelman.pl/products` ZALICZONY przez usera — wpisane ` laptop` **ze spacją z przodu** → 2 laptopy, czyli `Trim()` działa na żywej wersji, a nie tylko lokalnie.
+
+**Lekcja 1 — ta sama funkcja, dwa różne „gdzie".** Lokalnie dane wrzucaliśmy z PowerShellu (`Invoke-RestMethod` na `localhost:5143`), na produkcji trzeba wejść na serwer i walić w `127.0.0.1:5143` — bo API jest tam celowo schowane za nginx. `127.0.0.1` znaczy „ten komputer, na którym jestem": w SSH wskazuje VPS, w PowerShellu na PC wskazywałby Twój komputer, gdzie Shop nie stoi.
+
+**Lekcja 2 — hasło do zmiennej, nie do linii.** W pierwszej próbie wartość hasła dopisała się na końcu linii `SECRET=$(…)` (zamiast zostać wczytana przez `grep`), więc `echo ${#SECRET}` pokazało `0` i każdy `curl` dostałby `401`. Poprawna kolejność: najpierw przypisanie, potem `echo ${#SECRET}` jako bramka, dopiero potem `curl`. Przy okazji hasło wylądowało w historii basha na serwerze (`history -c` czyści w tej sesji).
+
+**Lekcja 3 — `%` wybacza to, czego `Trim()` nie dotknie.** W bazie jest `Kamera  ` z dwiema spacjami na końcu, a `?search=Kamera` i tak trafia — bo wzorzec `%Kamera%` nie wymaga końca nazwy. `Trim()` obcina tylko to, co wpisał user w pole, nie dane w bazie.
