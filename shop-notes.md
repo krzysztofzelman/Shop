@@ -1181,7 +1181,7 @@ Cel dnia = pierwsza pozycja kolejki z `JAK-WROCIC.md`. Wyszukiwanie (`LIKE`) św
 **Co weszło (3 pliki):**
 
 1. `Shop\src\Shop.Api\Controllers\ProductController.cs` — `GetProducts(int page = 1)`; `int pageSize = 10;` + `int skip = (page - 1) * pageSize;`; `CommandText` z `ORDER BY Id LIMIT @Take OFFSET @Skip` i dwa `command.Parameters.AddWithValue`.
-2. `Shop\src\Shop.Web\Components\Pages\Products.razor` — pole `currentPage`, jedna metoda `LoadProducts()` zamiast trzech kopii `GetFromJsonAsync`, `PreviousPage()` / `NextPage()`, pasek stron pod tabelą (`Poprzednia` / `Strona: N` / `Następna`) z `disabled="@(currentPage == 1)"`.
+2. `Shop\src\Shop.Web\Components\Pages\Products.razor` — pole `currentPage`, jedna metoda `LoadProducts()` zamiast trzech kopii `GetFromJsonAsync`, `PreviousPage()` / `NextPage()`, pasek stron pod tabelą (`Poprzednia` / `Strona: N` / `Następna`).
 3. `Shop\src\Shop.Web\Lang.cs` — klucze `Previous`, `Next`, `Page` w obu słownikach (PL/EN).
 
 **Dowody:** build 0 błędów, 0 ostrzeżeń; `/api/Product` → 4 produkty, `/api/Product?page=2` → `[]` (czyli `OFFSET` realnie pomija); na `http://localhost:5107/products` (hasło `dev123`) widać `Strona: 1`, a `Następna` / `Poprzednia` zmieniają numer strony i zawartość tabeli. Przy 4 produktach i `pageSize = 10` strona 2 jest pusta — to poprawne, nie brak danych.
@@ -1197,8 +1197,9 @@ Cel dnia = pierwsza pozycja kolejki z `JAK-WROCIC.md`. Wyszukiwanie (`LIKE`) św
 **Zostało:**
 
 1. wyszukiwanie: `GET /api/Product?search=…` (`LIKE` + `%`, jedna linia SQL + jedno pole na stronie);
-2. wdrożenie na VPS — zmieniły się OBA projekty, więc `docker compose up -d --build shop-api shop-web`;
-3. sprzątanie wierszy testowych (`Validation test` id 7, `PowerShell test` id 8) przyciskiem na `/products`;
-4. strażnik `if (page < 1) { page = 1; }` — dziś `?page=0` oddaje to samo co strona 1, bo ujemny `OFFSET` baza traktuje jak zero.
+2. przygaszenie `Poprzednia` na stronie 1 — `disabled="@(currentPage == 1)"` podane, ale NIEWPISANE (przycisk działa, tylko wygląda tak samo jak na dalszych stronach);
+3. wdrożenie na VPS — zmieniły się OBA projekty, więc `docker compose up -d --build shop-api shop-web`;
+4. sprzątanie wierszy testowych (`Validation test` id 7, `PowerShell test` id 8) przyciskiem na `/products`;
+5. strażnik `if (page < 1) { page = 1; }` — dziś `?page=0` oddaje to samo co strona 1, bo ujemny `OFFSET` baza traktuje jak zero.
 
 **Wniosek:** pierwszy raz w tym projekcie kawałek backendu i kawałek strony powstały w JEDNEJ sesji i zadziałały razem: API dostaje numer strony z adresu (`?page=2`), a strona sama dokleja go do swojego żądania (`$"api/Product?page={currentPage}"`).
