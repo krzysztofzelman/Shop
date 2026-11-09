@@ -24,7 +24,7 @@ Kartka na start po każdej przerwie — nie trzeba nic pamiętać ani niczego sz
 
 ## 4. Co dalej (kolejka)
 1. **Backend najpierw** (ustalone 2026-11-04): walidacja i kody błędów — `POST` ZROBIONY (2026-11-05), `PUT` ZROBIONY (2026-11-06), `PUT` na nieistniejący `id` → `404` ZROBIONY (2026-11-07), `DELETE` na nieistniejący `id` → `404` ZROBIONY (2026-11-07), strona pokazuje błąd z API (pasek `Name is required` / `API Error: NotFound`, wspólna metoda `SetError`) ZROBIONE (2026-11-07 wieczór), paginacja (`GET /api/Product?page=2` + przyciski `Poprzednia` / `Strona: N` / `Następna` na `/products`) ZROBIONA (2026-11-08), wyszukiwanie (`GET /api/Product?search=…`, `LIKE` + `%` + `Trim()`, pole „Szukaj" na `/products`) ZROBIONE (2026-11-08, druga sesja); dalej: konta (`Users`, hash hasła, token zamiast wspólnego `SecretKey`) → kilka testów kontrolera.
-2. Czytanie kodu: przystanek 5 — `@code` w `Products.razor` (`AddProduct`, `EditProduct`, `DeleteProduct`, `Cancel`).
+2. Czytanie kodu: przystanek 5 — `@code` w `Shop\src\Shop.Web\Components\Pages\Products.razor`. **2026-11-09 (Dzień 34):** przeczytane do końca `SearchProducts()` (dwie linie: `currentPage = 1;` i `await LoadProducts();`) — dalej od `LoadProducts()` i linii z adresem, po jednej linii i jednym zdaniu, bez tabelek.
 3. Etap 2 — koszyk. React dopiero osobno, po JS/TS i po tym, jak API ma co pokazać.
 
 ## 5. Po przerwie: pierwszy krok to 5 minut

@@ -1277,3 +1277,48 @@ Cel dnia = druga pozycja kolejki z `JAK-WROCIC.md` (user: „tak, bierzemy wyszu
 **Lekcja 2 — hasło do zmiennej, nie do linii.** W pierwszej próbie wartość hasła dopisała się na końcu linii `SECRET=$(…)` (zamiast zostać wczytana przez `grep`), więc `echo ${#SECRET}` pokazało `0` i każdy `curl` dostałby `401`. Poprawna kolejność: najpierw przypisanie, potem `echo ${#SECRET}` jako bramka, dopiero potem `curl`. Przy okazji hasło wylądowało w historii basha na serwerze (`history -c` czyści w tej sesji).
 
 **Lekcja 3 — `%` wybacza to, czego `Trim()` nie dotknie.** W bazie jest `Kamera  ` z dwiema spacjami na końcu, a `?search=Kamera` i tak trafia — bo wzorzec `%Kamera%` nie wymaga końca nazwy. `Trim()` obcina tylko to, co wpisał user w pole, nie dane w bazie.
+
+---
+
+## DZIEŃ 34 — sesja CZYTANIA kodu: `Products.razor`, kod z Dni 32–33 (2026-11-09, poniedziałek)
+
+**Bez zmian w kodzie.** Zero nowych linii w `.cs`/`.razor`, zero commitów z kodem — dzień tylko na czytanie. `HEAD` przed sesją = `a0a4391` (= `origin/master`), serwer stoi na `15c122e` (kod Dnia 33, nic nie czeka na wdrożenie).
+
+**Wejście:** user zapytał „co proponujesz na sesję?" → rekomendacja: konta, krok 1 (tabela `Users` + `POST /api/User`), lżejsza alternatywa: strażnik `page < 1` + sprzątanie wierszy testowych. User: „**może pierw poczytamy kod?**" → przystanek 5 z kolejki `JAK-WROCIC.md`, zakres JEDEN plik: `Shop\src\Shop.Web\Components\Pages\Products.razor`, tylko kod z Dni 32–33 (paginacja + wyszukiwanie).
+
+**Plan (4 przystanki) i co się z nim stało:** `LoadProducts()` → `SearchProducts()` → `PreviousPage`/`NextPage` → pasek „Szukaj". Wszystkie cztery dostały odpowiedzi, ale w JEDNEJ wiadomości — razem z dwiema tabelkami słówek EN — i user odpowiedział: „**jak dla mnie 0 zero z tego wiem**".
+
+**Reset (protokół przytłoczenia):** przyznanie winy po stronie asystenta (objętość, nie jego brak wiedzy) → dowody na to, co user UMIE (ten kod sam napisał i przetestował 2026-11-08) → jawne „co wyrzucamy z dnia" (przystanki 3 i 4, obie tabelki słówek, `Uri.EscapeDataString`, interpolacja `$"..."`, `@bind:event`) → jedna rzecz do wyboru A/B/C. User wybrał **A**: `SearchProducts()`.
+
+**Co zostało przeczytane do końca (A):** `currentPage = 1;` (wpisz liczbę 1 do pudełka — stara strona nadpisana) i `await LoadProducts();` (poczekaj, aż pobierze się lista). Plus rozdzielenie DWÓCH linii z tą samą liczbą `1`: `private int currentPage = 1;` (pierwsza wartość przy otwarciu strony) vs `currentPage = 1;` w `SearchProducts()` (ponowne wpisanie po kliknięciu „Szukaj").
+
+**Lekcja 1 — moje słowo wprowadziło błąd.** Napisałem „zerujemy stronę", a user odczytał dosłownie: „nie rozumiem zerowanie strony". Poprawnie: **`=` wpisuje wartość**, a `currentPage = 1;` nadpisuje 2/3/5 liczbą 1 — nic nie jest zerowane i nie „startuje z 2 strony". Przy tłumaczeniu przypisania używać słowa „wpisz/nadpisz", nie metafor.
+
+**Lekcja 2 — jedno pojęcie na wiadomość, nie cztery przystanki.** Wcześniejsze sesje czytania działały (2026-11-03: 5 przystanków, ale pojedynczo i na potwierdzenie usera). Dziś 4 przystanki + 2 tabelki słówek w jednym bloku = „0 z tego wiem", mimo że treść była poprawna.
+
+**Lekcja 3 — bramką jest jego „dalej".** Po wyjaśnieniu `SearchProducts()` user napisał „**pass starczy**" — sesja zamknięta bez wchodzenia w `LoadProducts()` (adres z `$"..."`, `Uri.EscapeDataString`), które formalnie były już wyjaśnione, ale dziś nieprzyswojone.
+
+**Zostało bez zmian (kolejka):**
+
+1. konta — `Users`, hash hasła, token zamiast wspólnego `SecretKey`;
+2. strażnik `if (page < 1) { page = 1; }` w `GetProducts`;
+3. sprzątanie wierszy testowych lokalnie (`Myszka` id 3, `Klawiatura` id 6, `Validation test` id 7, `PowerShell test` id 8, produkty z Dnia 33 id 12–17) i `Kamera  ` na produkcji;
+4. dokończenie czytania `@code` w `Products.razor`: `LoadProducts()` (linia z adresem), `AddProduct`, `EditProduct`, `DeleteProduct`, `Cancel`.
+
+**Wniosek:** dzień nie dał nowego kodu, ale dał dwa fakty: kod z Dni 32–33 działa (potwierdzone na produkcji 2026-11-08) i nie jest jeszcze opowiedziany własnymi słowami. Następna sesja czytania wchodzi od `LoadProducts()` — jedna linia, jedno zdanie, bez tabelek.
+
+---
+
+## DZIEŃ 34 cd. — poprawka nazwy na PRODUKCJI: `Kamera  ` → `Kamera` (2026-11-09, poniedziałek)
+
+**Bez zmian w kodzie.** Jedna operacja na bazie produkcyjnej przez API na serwerze, wykonana przez usera po SSH (`/root/shop`).
+
+**Powód:** wiersz `id 4` miał w nazwie dwie spacje na końcu (resztka z wcześniejszych testów) — w tabeli wyświetlał się jako `Kamera  `. Wyszukiwanie tego nie psuło (`%Kamera%` nie wymaga końca nazwy), ale wyglądało niechlujnie w demo.
+
+**Przebieg:** `SECRET=$(grep '^SecretKey=' .env | cut -d= -f2)` → `PUT /api/Product/4` z ciałem `{"name":"Kamera","quantity":2,"price":199.99}` → kontrola `GET /api/Product`.
+
+**Dowód:** JSON po `PUT` ma `{"id":4,"name":"Kamera",…}` (bez spacji), lista nadal 10 wierszy (`id` 1, 2, 3, 4, 6, 7, 8, 9, 10, 11) — nic nie zginęło, `id 5` nie istnieje od wcześniejszych testów.
+
+**Lekcja — `curl` bez `-i` przy `Ok()` wygląda na „nic się nie stało".** Kontroler kończy `UpdateProduct` przez `Ok()`, czyli `200` z PUSTYM ciałem; `-s` ukrywa nagłówki, więc na ekranie nie ma ani jednego znaku. Dowodem jest dopiero następne `GET`, nie brak wyjścia z `PUT`.
+
+**Sprzątanie danych — stan:** na produkcji nie ma śmieci testowych (wszystkie 10 wierszy to produkty demonstracyjne). Śmieci (`Validation test` id 7, `PowerShell test` id 8, `Myszka` id 3 i produkty z Dnia 33 id 12–17) siedzą WYŁĄCZNIE w lokalnej `database/shop.db` — do usunięcia przy następnym uruchomieniu strony.
