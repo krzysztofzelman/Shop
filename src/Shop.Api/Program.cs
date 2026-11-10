@@ -15,7 +15,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-string secret = app.Configuration["SecretKey"] ?? "brak-klucza";
+string secret = app.Configuration["SecretKey"] ?? "missing-key";
 
 app.Use(async (context, next) =>
 {
@@ -52,6 +52,13 @@ using (SqliteConnection connection = new SqliteConnection(cs))
     connection.Open();
     SqliteCommand command = connection.CreateCommand();
     command.CommandText = "CREATE TABLE IF NOT EXISTS OrderItems (Id INTEGER PRIMARY KEY AUTOINCREMENT, OrderId INTEGER, ProductId INTEGER, Quantity INTEGER, Price REAL)";
+    command.ExecuteNonQuery();
+}
+using (SqliteConnection connection = new SqliteConnection(cs))
+{
+    connection.Open();
+    SqliteCommand command = connection.CreateCommand();
+    command.CommandText = "CREATE TABLE IF NOT EXISTS Users (Id INTEGER PRIMARY KEY AUTOINCREMENT, Login TEXT, Password TEXT)";
     command.ExecuteNonQuery();
 }
 app.Run();

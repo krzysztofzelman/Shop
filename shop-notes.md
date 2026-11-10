@@ -1322,3 +1322,26 @@ Cel dnia = druga pozycja kolejki z `JAK-WROCIC.md` (user: „tak, bierzemy wyszu
 **Lekcja — `curl` bez `-i` przy `Ok()` wygląda na „nic się nie stało".** Kontroler kończy `UpdateProduct` przez `Ok()`, czyli `200` z PUSTYM ciałem; `-s` ukrywa nagłówki, więc na ekranie nie ma ani jednego znaku. Dowodem jest dopiero następne `GET`, nie brak wyjścia z `PUT`.
 
 **Sprzątanie danych — stan:** na produkcji nie ma śmieci testowych (wszystkie 10 wierszy to produkty demonstracyjne). Śmieci (`Validation test` id 7, `PowerShell test` id 8, `Myszka` id 3 i produkty z Dnia 33 id 12–17) siedzą WYŁĄCZNIE w lokalnej `database/shop.db` — do usunięcia przy następnym uruchomieniu strony.
+
+---
+
+## DZIEŃ 35 — KONTA krok 1: model `User`, tabela `Users`, `POST /api/User` (2026-11-10, wtorek)
+
+**Zakres:** pierwszy z pięciu kroków kont — powtórka wzorca `Products`, bez hasha i bez tokenu. Cel: móc zapisać konto w bazie przez API.
+
+**Co weszło (sprawdzone w plikach, nie z pamięci):**
+
+1. `Shop\src\Shop.Shared\User.cs` — nowa klasa `User`: `Id`, `Login`, `Password` (bez `namespace`, tak jak `Product.cs`).
+2. `Shop\src\Shop.Api\Program.cs` — czwarty blok `CREATE TABLE IF NOT EXISTS Users (Id INTEGER PRIMARY KEY AUTOINCREMENT, Login TEXT, Password TEXT)` przed `app.Run();`. Przy okazji `"brak-klucza"` zamienione na `"missing-key"` — ostatnia polska wartość w tym pliku i wartość, którą dałoby się odgadnąć, gdyby w konfiguracji brakowało klucza.
+3. `Shop\src\Shop.Api\Controllers\UserController.cs` — nowy kontroler, adres `/api/User`, jedna metoda `[HttpPost] RegisterUser` (kopia `AddProduct`): dwa `if` z `IsNullOrWhiteSpace` → `BadRequest`, potem `INSERT INTO Users (Login, Password) VALUES (@Login, @Password)` + `AddWithValue` + `ExecuteNonQuery` → `Ok()`.
+
+**Testy (PowerShell, nagłówek `X-Secret: dev123`):**
+
+- `POST /api/User` z `{"login":"krzys","password":"test123"}` → cisza = `200`, a w pliku `database/shop.db` są ciągi `krzys` i `test123` ⇒ wiersz w tabeli jest.
+- `POST /api/User` z `{"login":"","password":"test123"}` → `(400) Złe żądanie` ⇒ `return BadRequest` zadziałał, `INSERT` się nie wykonał.
+
+**Dwie literówki SQL, które user znalazł sam (build był CZYSTY):** `NOT EXIST` → `NOT EXISTS` oraz `PRIMAY` / `PRIMRAY` → `PRIMARY`. Kompilator tego nie widzi, bo `CommandText` to zwykły `string`. Objaw jest mylący: wyjątek `SqliteException` leci przy starcie w oknie `Shop.Api`, a okno `Shop.Web` wstaje normalnie — na ekranie widać tylko brak danych. Dlatego stan sprawdzać samemu: `netstat` na porcie 5143 + szukanie nazwy tabeli w bajtach pliku `.db` (plik trzymany przez działające API czyta się w trybie współdzielonym).
+
+**Świadomie NIE ma:** sprawdzania, czy login już istnieje, hasha (hasło leży w bazie czystym tekstem — widać je w bajtach pliku), logowania i tokenu.
+
+**Zostało w kroku kont:** krok 2 — logowanie w API (`POST /api/User/Login`, sprawdzenie loginu i hasła → `200` vs `401`); krok 3 — hash; krok 4 — token zamiast wspólnego `X-Secret`; krok 5 — strona z dwoma polami i `AuthState` mówiącym KTO, nie tylko „zalogowany".
