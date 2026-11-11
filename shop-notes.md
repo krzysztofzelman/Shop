@@ -1345,3 +1345,46 @@ Cel dnia = druga pozycja kolejki z `JAK-WROCIC.md` (user: „tak, bierzemy wyszu
 **Świadomie NIE ma:** sprawdzania, czy login już istnieje, hasha (hasło leży w bazie czystym tekstem — widać je w bajtach pliku), logowania i tokenu.
 
 **Zostało w kroku kont:** krok 2 — logowanie w API (`POST /api/User/Login`, sprawdzenie loginu i hasła → `200` vs `401`); krok 3 — hash; krok 4 — token zamiast wspólnego `X-Secret`; krok 5 — strona z dwoma polami i `AuthState` mówiącym KTO, nie tylko „zalogowany".
+
+---
+
+## DZIEŃ 36 — KONTA krok 2: logowanie `POST /api/User/Login` → 200 vs 401 (2026-11-11, środa)
+
+**Zakres:** jedna nowa metoda w istniejącym pliku, bez nowego pliku i bez zmian w `Shop.Web`. Cel: API samo sprawdza login i hasło i odróżnia „dobre dane" od „złych danych".
+
+**Co weszło (sprawdzone w pliku, nie z pamięci):** `Shop\src\Shop.Api\Controllers\UserController.cs` — druga metoda `[HttpPost("Login")] public IActionResult Login(User loginUser)`, wstawiona pod `RegisterUser`. W środku ten sam szkielet połączenia co wyżej, ale zamiast rozkazu jest pytanie do bazy:
+
+```csharp
+command.CommandText = "SELECT Id FROM Users WHERE Login = @Login AND Password = @Password";
+...
+using (SqliteDataReader reader = command.ExecuteReader())
+{
+    if (reader.Read())
+    {
+        return Ok();
+    }
+}
+...
+return Unauthorized();
+```
+
+`[HttpPost("Login")]` dokleja segment do `[Route("api/[controller]")]`, więc pełny adres to `api/User/Login`. `Unauthorized()` jest wbudowane w `ControllerBase` (obok `Ok()`, `BadRequest()`, `NotFound()`) i oddaje **401**.
+
+**Trzy błędy usera i co je powodowało (build je pokazał — ten etap był głośny):**
+
+1. `using (SqliteCommand connection = new SqliteConnection(connectionString))` — zamienione typy. Kompilator: „nie można przekonwertować `SqliteConnection` na `SqliteCommand`", a potem „`SqliteCommand` nie zawiera `Open`" i „…nie zawiera `CreateCommand`". Jedna przyczyna, trzy komunikaty.
+2. `using (SqliteDataReader reader = command.ExecuteReader());` — średnik po `using` kończy instrukcję, `using` dostaje puste ciało (stąd ostrzeżenie „pusta instrukcja"), a klamry poniżej są osobnym blokiem, w którym `reader` nie istnieje („Nazwa `reader` nie istnieje w bieżącym kontekście").
+3. `GetConnectionString("ShkopDb")` zamiast `"ShopDb"` — **cichy błąd**: to zwykły tekst, więc build był zielony, a połączenie dostałoby pusty `connectionString` z `?? ""`. Znalezione przez czytanie pliku, nie przez kompilator.
+
+**Test 1 nie zadziałał z powodu bramy, nie z powodu kodu:** oba żądania (`test123` i `zlehaslo`) oddały `401`, bo w `Shop\src\Shop.Api\Program.cs` stoi brama `X-Secret` z Dnia 22 — bez nagłówka każde żądanie dostaje `401` i **nie dochodzi do kontrolera**. Po dodaniu `$h = @{ "X-Secret" = "dev123" }` wszystko wróciło na miejsce.
+
+**Testy (PowerShell 5.1, `http://localhost:5143/api/User/Login`, nagłówek `X-Secret: dev123`):**
+
+- `{"login":"krzys","password":"test123"}` → cisza = `200` ⇒ `reader.Read()` znalazł wiersz, `return Ok()` zadziałał.
+- `{"login":"krzys","password":"zlehaslo"}` → `(401) Bez autoryzacji.` ⇒ czytnik nic nie znalazł i metoda doszła do `return Unauthorized()` na końcu.
+
+**Jak rozpoznać, która warstwa oddała 401:** brama z `Program.cs` pisze w ciele słowo `Unauthorized`, a `Unauthorized()` z kontrolera oddaje puste ciało. Ten sam kod, dwa różne źródła.
+
+**Świadomie NIE ma:** sprawdzania, czy login istnieje osobno od hasła (jeden `SELECT` z `AND` odpowiada na oba naraz), hasha (hasło nadal leży w `shop.db` czystym tekstem), tokenu i strony logowania.
+
+**Zostało w kroku kont:** krok 3 — hash hasła (`Password` przestaje być czytelny w pliku bazy); krok 4 — token zamiast wspólnego `X-Secret`; krok 5 — strona z dwoma polami i `AuthState` mówiącym KTO, nie tylko „zalogowany".
