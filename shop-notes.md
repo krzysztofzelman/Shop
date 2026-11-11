@@ -1388,3 +1388,46 @@ return Unauthorized();
 **Świadomie NIE ma:** sprawdzania, czy login istnieje osobno od hasła (jeden `SELECT` z `AND` odpowiada na oba naraz), hasha (hasło nadal leży w `shop.db` czystym tekstem), tokenu i strony logowania.
 
 **Zostało w kroku kont:** krok 3 — hash hasła (`Password` przestaje być czytelny w pliku bazy); krok 4 — token zamiast wspólnego `X-Secret`; krok 5 — strona z dwoma polami i `AuthState` mówiącym KTO, nie tylko „zalogowany".
+
+---
+
+## DZIEŃ 36 cd. — KONTA krok 3: hash hasła (`SHA256`), PRZETESTOWANY (2026-11-11, środa)
+
+**Zakres:** jedna nowa metoda prywatna + dwie podmiany w istniejących metodach. Plik jeden: `Shop\src\Shop.Api\Controllers\UserController.cs`.
+
+**Co weszło (sprawdzone w pliku):**
+
+1. Dwa `using` na górze, pod `using Microsoft.Data.Sqlite;`: `using System.Security.Cryptography;` i `using System.Text;`.
+2. Nowa metoda na dole klasy, pod `Login`:
+
+```csharp
+    private string HashPassword(string password)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(password);
+        byte[] hash = SHA256.HashData(bytes);
+        string hashText = Convert.ToHexString(hash);
+        return hashText;
+    }
+```
+
+3. `RegisterUser`: `@Password` owinięte w `HashPassword(newUser.Password)`, a `@Login` **został jawny** (`newUser.Login`).
+4. `Login`: `@Password` owinięte w `HashPassword(loginUser.Password)`, `SELECT` bez zmian.
+
+**Rura „tekst → bajty → skrót → tekst":** `SHA256.HashData` nie przyjmuje tekstu, tylko bajty (`Encoding.UTF8.GetBytes`), a oddaje 32 bajty, więc do kolumny `TEXT` trzeba je zamienić na tekst hex (`Convert.ToHexString`). Dlatego trzy zmienne, a nie jedna linia. Wszystkie trzy nazwy są z platformy .NET, nie z repo — `SHA256` i `Encoding` wymagają `using`, `Convert` siedzi w `System`, który jest domyślnie.
+
+**Pięć pomyłek usera po drodze (wszystkie poprawione):** `using System.Security.Cryptography = using System.Text;` na KOŃCU klasy (zła składnia + złe miejsce — `using` stoi tylko na górze pliku); `private string HashPassword(string password);` ze średnikiem (metoda bez ciała); `Covent` zamiast `Convert`; zahashowany LOGIN w `RegisterUser`; niezahashowane hasło w `Login`. Ostatnie dwie były ciche — build zielony, a logowanie i tak by nie działało.
+
+**Logika, która się z tego wyłoniła:** hash idzie na wartość TAJNĄ, czyli hasło. Login zostaje czytelny, bo jest **kluczem szukania** (`WHERE Login = @Login`) — z odcisku nie odtworzysz tekstu, więc zahashowany login nie znalazłby nigdy wiersza. Dwie podmiany, bo to dwa różne momenty: `RegisterUser` **zapisuje** odcisk, `Login` **porównuje** odcisk z odciskiem.
+
+**Testy (PowerShell 5.1, `X-Secret: dev123`, po restarcie API):**
+
+- `POST /api/User` `anna`/`secret1` → cisza = `200` (konto zapisane).
+- `POST /api/User/Login` `anna`/`secret1` → cisza = `200`.
+- `POST /api/User/Login` `anna`/`zlehaslo` → `(401) Bez autoryzacji.`
+- `POST /api/User/Login` `krzys`/`test123` → `(401) Bez autoryzacji.` — **oczekiwane**, ten wiersz ma hasło jawne z Dnia 35.
+
+**Dowód z bajtów `database/shop.db` (czytane w trakcie działania API, `FileShare.ReadWrite`):** `secret1` = **False** (hasło nie leży w pliku), `anna` = **True** (login czytelny), skróty 64-znakowe = **1** (hasło Anny), `test123` = True (pozostałość po `krzys`). Czyli hash działa dokładnie tam, gdzie miał.
+
+**Czego NIE ma:** soli (*salt*) i spowalniania — dwie osoby z tym samym hasłem mają ten sam odcisk. Do prawdziwej produkcji używa się `PasswordHasher<T>` z ASP.NET Identity albo `BCrypt`/`Argon2`; nasz `SHA256` pokazuje mechanizm, nie jest gotowym standardem.
+
+**Zostało:** krok 4 — token zamiast wspólnego `X-Secret`; krok 5 — strona z dwoma polami i `AuthState` mówiącym KTO. Przy sprzątaniu danych: wiersz `krzys` z jawnym `test123` nadal siedzi w lokalnej bazie (do skasowania, plik bazy nie idzie do repo).
