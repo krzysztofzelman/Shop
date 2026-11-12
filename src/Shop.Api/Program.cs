@@ -61,4 +61,12 @@ using (SqliteConnection connection = new SqliteConnection(cs))
     command.CommandText = "CREATE TABLE IF NOT EXISTS Users (Id INTEGER PRIMARY KEY AUTOINCREMENT, Login TEXT, Password TEXT)";
     command.ExecuteNonQuery();
 }
-app.Run();
+using (SqliteConnection connection = new SqliteConnection(cs))
+{
+    connection.Open();
+    SqliteCommand command = connection.CreateCommand();
+    command.CommandText = "CREATE TABLE IF NOT EXISTS Tokens (Id INTEGER PRIMARY KEY AUTOINCREMENT, UserId INTEGER, Value TEXT)";
+    command.ExecuteNonQuery();
+}
+
+    app.Run();

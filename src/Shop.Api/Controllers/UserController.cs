@@ -43,6 +43,7 @@ public class UserController : ControllerBase
     public IActionResult Login(User loginUser)
     {
         string connectionString = _config.GetConnectionString("ShopDb") ?? "";
+        int userId = 0;
         using (SqliteConnection connection = new SqliteConnection(connectionString))
         {
             connection.Open();
@@ -54,11 +55,23 @@ public class UserController : ControllerBase
             {
                 if (reader.Read())
                 {
-                    return Ok();
+                    userId = Convert.ToInt32(reader["Id"]);
                 }
             }
+
+            if (userId == 0)
+            {
+                return Unauthorized();
+            }
+
+            string token = Guid.NewGuid().ToString();
+            SqliteCommand insertCommand = connection.CreateCommand();
+            insertCommand.CommandText = "INSERT INTO Tokens (UserId, Value) VALUES (@UserId, @Value)";
+            insertCommand.Parameters.AddWithValue("@UserId", userId);
+            insertCommand.Parameters.AddWithValue("@Value", token);
+            insertCommand.ExecuteNonQuery();
+            return Ok(token);
         }
-        return Unauthorized();
     }
     private string HashPassword(string password)
     {

@@ -1431,3 +1431,46 @@ return Unauthorized();
 **Czego NIE ma:** soli (*salt*) i spowalniania — dwie osoby z tym samym hasłem mają ten sam odcisk. Do prawdziwej produkcji używa się `PasswordHasher<T>` z ASP.NET Identity albo `BCrypt`/`Argon2`; nasz `SHA256` pokazuje mechanizm, nie jest gotowym standardem.
 
 **Zostało:** krok 4 — token zamiast wspólnego `X-Secret`; krok 5 — strona z dwoma polami i `AuthState` mówiącym KTO. Przy sprzątaniu danych: wiersz `krzys` z jawnym `test123` nadal siedzi w lokalnej bazie (do skasowania, plik bazy nie idzie do repo).
+
+## DZIEŃ 37 — KONTA krok 4, części 1 i 2: tabela `Tokens` + token wydawany przy `Login` (2026-11-12, czwartek)
+
+**Cel kroku 4:** jedno hasło bramy `dev123` dla wszystkich znaczy, że API nie wie, KTO pyta. Token ma to zmienić: `Login` wydaje bilet, klient dokłada go do żądań, API sprawdza bilet zamiast wspólnego hasła. Poza zakresem: czas wygaśnięcia, role, odświeżanie.
+
+**Część 1 ✅ — tabela `Tokens`** (`Shop\src\Shop.Api\Program.cs`, piąty blok `CREATE TABLE`, pod blokiem `Users`, nad `app.Run()`):
+
+```sql
+CREATE TABLE IF NOT EXISTS Tokens (Id INTEGER PRIMARY KEY AUTOINCREMENT, UserId INTEGER, Value TEXT)
+```
+
+`Id` = numer wiersza (baza nada sama), `UserId` = czyj token (numer z `Users`), `Value` = sam ciąg znaków. Ramka (połączenie → `Open()` → `CreateCommand()` → `CommandText` → `ExecuteNonQuery()`) skopiowana od bloku `Users` — cała różnica jest w tekście w cudzysłowie.
+
+**Część 2 ✅ — `Login` wydaje token** (`Shop\src\Shop.Api\Controllers\UserController.cs`), przetestowana:
+
+1. `int userId = 0;` **nad** `using (SqliteConnection …)` — zmienna musi przeżyć zamknięcie readera, a zmienna zadeklarowana w środku klamry żyje tylko do swojej klamry.
+2. W środku `if (reader.Read())`: `userId = Convert.ToInt32(reader["Id"]);` — **bez `int`**, bo to przypisanie do już istniejącej zmiennej.
+3. Po zamknięciu readera strażnik: `if (userId == 0) { return Unauthorized(); }` — `0` to umowa „nikt nie znaleziony".
+4. `string token = Guid.NewGuid().ToString();` — .NET generuje unikalny ciąg, `ToString()` robi z niego tekst.
+5. `INSERT INTO Tokens (UserId, Value) VALUES (@UserId, @Value)` — nowa komenda `insertCommand` na **tym samym** połączeniu, dwa `AddWithValue`, `ExecuteNonQuery()`.
+6. `return Ok(token);` — zamiast pustego `200` odpowiedź niesie bilet.
+
+Dlaczego `INSERT` stoi **pod** `using (SqliteDataReader …)`: pisanie w trakcie otwartego czytania blokuje bazę, więc reader musi się zamknąć na swojej klamrze.
+
+**Test (PowerShell 5.1, po restarcie API):**
+
+```
+$h = @{ "X-Secret" = "dev123"; "Content-Type" = "application/json" }
+Invoke-RestMethod -Uri "http://localhost:5143/api/User/Login" -Method Post -Headers $h -Body '{"Login":"anna","Password":"secret1"}'
+```
+
+Odpowiedź: **`8ea0abe3-b8a7-49cb-b79c-330faa7be5b4`** — 36 znaków (GUID). Skoro odpowiedź doszła, `INSERT` też przeszedł (błąd bazy dałby `500`).
+
+**Dwie pomyłki po drodze (obie ciche dla kompilatora):**
+
+- Wklejony blok `Tokens` zgubił **ostatnią klamrę `}`** — `app.Run();` wpadło do środka `using`, build oddał `CS1513`. Wcięcie `app.Run();` z przodu nie było błędem; liczą się klamry, nie spacje.
+- `int userId = Convert.ToInt32(reader["Id"]);` stało **nad** `if (reader.Read())` — build zielony, ale przy logowaniu byłoby `500`, bo kursor readera stoi jeszcze przed wierszem. Kolejność: `Read()` → klamra → czytanie kolumn.
+
+**Czego ten dzień nauczył o SQL (pytania usera, nie kod):** `CREATE TABLE IF NOT EXISTS` to jedno zdanie wysłane do bazy — baza sama sprawdza, czy tabela jest, i tworzy ją tylko raz; przy każdym kolejnym `Ctrl+F5` nic się nie dzieje. Rekordy (wiersze) tworzą wyłącznie `INSERT`-y — a te siedzą w kontrolerach (`AddProduct`, `RegisterUser`), nie w blokach startowych. Tabela = kolumny bez danych; wiersz = jeden produkt / jeden użytkownik / jeden token.
+
+**Uczciwie o autorstwie:** cała metoda `Login` z tokenem została **WKLEJONA** — user powiedział wprost, że tego nie wymyśli i poprosił o źródła do poczytania. To krok tymczasowy, nie dowód umiejętności. Plan na następny raz: przeczytać `AddProduct` w `Shop\src\Shop.Api\Controllers\ProductController.cs` (ten sam `INSERT` + `AddWithValue` + `ExecuteNonQuery`) i przenieść ten wzorzec na `Tokens` — wtedy kod jest jego, nie mój. Źródła: `learn.microsoft.com/dotnet/api/system.guid.newguid`, `learn.microsoft.com/dotnet/standard/data/sqlite/`, `sqlite.org/lang_insert.html`.
+
+**Zostało w kroku 4 (część 3):** brama w `Program.cs` ma sprawdzać token z tabeli `Tokens` zamiast nagłówka `X-Secret`, a klient (`Shop.Web`) ma dokładać token do żądań po zalogowaniu. Do tego czasu brama `X-Secret` stoi nietknięta i każde żądanie dalej wymaga `dev123` — token jest wydawany, ale jeszcze nikt go nie sprawdza.
