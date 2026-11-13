@@ -1474,3 +1474,44 @@ Odpowiedź: **`8ea0abe3-b8a7-49cb-b79c-330faa7be5b4`** — 36 znaków (GUID). Sk
 **Uczciwie o autorstwie:** cała metoda `Login` z tokenem została **WKLEJONA** — user powiedział wprost, że tego nie wymyśli i poprosił o źródła do poczytania. To krok tymczasowy, nie dowód umiejętności. Plan na następny raz: przeczytać `AddProduct` w `Shop\src\Shop.Api\Controllers\ProductController.cs` (ten sam `INSERT` + `AddWithValue` + `ExecuteNonQuery`) i przenieść ten wzorzec na `Tokens` — wtedy kod jest jego, nie mój. Źródła: `learn.microsoft.com/dotnet/api/system.guid.newguid`, `learn.microsoft.com/dotnet/standard/data/sqlite/`, `sqlite.org/lang_insert.html`.
 
 **Zostało w kroku 4 (część 3):** brama w `Program.cs` ma sprawdzać token z tabeli `Tokens` zamiast nagłówka `X-Secret`, a klient (`Shop.Web`) ma dokładać token do żądań po zalogowaniu. Do tego czasu brama `X-Secret` stoi nietknięta i każde żądanie dalej wymaga `dev123` — token jest wydawany, ale jeszcze nikt go nie sprawdza.
+
+## DZIEŃ 38 — KONTA krok 4, część 3: brama sprawdza token z tabeli `Tokens` (2026-11-13, piątek)
+
+**Cel:** dotąd każde żądanie woziło jedno wspólne hasło `dev123`, więc API nie wiedziało, KTO pyta. Po tym dniu brama nie porównuje hasła z pliku konfiguracyjnego, tylko pyta bazę, czy taki token w ogóle istnieje.
+
+**Co weszło (wszystko w `Shop\src\Shop.Api\Program.cs`):**
+
+1. **Metoda `TokenExists(string token)`** — lokalna, pod piątym blokiem `Tokens`, nad `app.Run()`: `command.CommandText = "SELECT Id FROM Tokens WHERE Value = @Value"` + `AddWithValue("@Value", token)` + `using (SqliteDataReader reader = command.ExecuteReader())` + `if (reader.Read()) { return true; }`, a `return false;` dopiero **za** połączeniem (dochodzi tam tylko wtedy, gdy `Read()` nie znalazł wiersza). `ExecuteReader`, nie `ExecuteNonQuery` — to pytanie do bazy, nie rozkaz.
+2. **Brama pyta bazę:** `string given = context.Request.Headers["X-Secret"].ToString();` → `string token = context.Request.Headers["X-Token"].ToString();`, a `if (given != secret)` → `if (TokenExists(token) == false)`. Linia `string secret = app.Configuration["SecretKey"] ?? "missing-key";` zniknęła razem z porównaniem.
+3. **`string cs = builder.Configuration.GetConnectionString("ShopDb") ?? "";` przeniesione NAD bramę** — `TokenExists` czyta `cs`, więc wartość musi istnieć, zanim ktokolwiek metodę zawoła.
+4. **Wyjątek dla logowania:** `if (context.Request.Path.StartsWithSegments("/api/User")) { await next(); return; }` jako pierwsze linie w bramie. Bez tego `Login` sam dostawał `401` i nikt nigdy nie dostałby tokenu — brama odcinałaby źródło biletów.
+
+**Test (PowerShell 5.1, po `Shift+F5` → `Ctrl+F5`):**
+
+```
+$t = Invoke-RestMethod -Uri "http://localhost:5143/api/User/Login" -Method Post -Headers @{ "Content-Type" = "application/json" } -Body '{"Login":"anna","Password":"secret1"}'
+```
+
+Efekt: **cisza na ekranie** — i to sukces: `$t = …` wciąga GUID do zmiennej, zamiast go drukować. Wcześniej ten sam adres zwracał `(401) Bez autoryzacji.`
+
+```
+Invoke-RestMethod -Uri "http://localhost:5143/api/Product" -Headers @{ "X-Token" = $t }
+```
+
+Efekt: **7 produktów** (`id` 6, 12, 13, 14, 15, 16, 17) — brama uznała token z tabeli.
+
+```
+Invoke-RestMethod -Uri "http://localhost:5143/api/Product" -Headers @{ "X-Token" = "zly-token" }
+```
+
+Efekt: `(401) Bez autoryzacji.` — czyli brama naprawdę sprawdza bazę, a nie przepuszcza byle czego.
+
+**Trzy lekcje z kompilatora (wszystkie tanie, żadna nie była błędem w logice):**
+
+- `CS0165` „Użyto nieprzypisanej zmiennej lokalnej cs" — `cs` stało **pod** bramą, a brama już wołała metodę, która `cs` czyta. Kompilator czyta plik z góry do dołu: kolejność deklaracji wobec UŻYCIA ma znaczenie, nie klamry. Poprawka = przenieść przypisanie nad bramę.
+- `CS8321` „Funkcja lokalna TokenExists jest zadeklarowana, lecz nie jest nigdy używana" — ostrzeżenie, nie błąd; metoda istniała, ale nikt jej nie wołał. Zniknęło w chwili, gdy brama zaczęła ją wołać, i to jest dowód, że wołanie naprawdę weszło.
+- Przenoszenie linii „jednym zdaniem" się nie udało: linia `string cs = …` zniknęła z pliku, a w jej miejsce weszła kopia `app.Use(async (context, next) =>` bez ciała. Jedna przyczyna → siedem komunikatów (6× „Nazwa cs nie istnieje", „using", „Oczekiwano )", „Oczekiwano ;"). Lekcja: przenoszenie podawać jako DWA osobne ruchy — „usuń CAŁĄ tę linię" + „wstaw dokładnie tę samą linię nad …", z fragmentem PRZED → PO.
+
+**Uczciwie o autorstwie:** `TokenExists` dostał ode mnie jako gotowy blok (poprosił „naoisz mi to" — 16 linii), wpisał go ręką. Bramę przerobił sam z instrukcji, wyjątek dla `/api/User` też wpisał sam. Dwa `edit` po „popraw d to za mnie" zrobiłem ja. Jego własna robota tego dnia: rozpoznanie ramki `using (SqliteConnection …)` z bloków `CREATE TABLE` i podmiana tylko SQL, ustalenie że `ExecuteNonQuery` jest do rozkazów a `SELECT` potrzebuje readera, build, restart, testy.
+
+**Zostało w kroku 4 (część 3 po stronie klienta):** `Shop\src\Shop.Web\Program.cs` (linia 22) nadal dokleja `X-Secret` do każdego żądania, a `Login.razor` porównuje hasło z `dev123` w pliku zamiast pytać API. Skutek: **`http://localhost:5107/products` nie pokazuje teraz danych** — brama odrzuca `X-Secret`. Do zrobienia: strona loguje się kontem (`POST /api/User/Login`), trzyma token w `AuthState` i wozi go w nagłówku `X-Token`. Do tego czasu `$h = @{ "X-Secret" = "dev123" }` w testach PowerShell trzeba zamienić na `$h = @{ "X-Token" = $t }`.

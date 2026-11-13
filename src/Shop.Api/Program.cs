@@ -15,12 +15,17 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-string secret = app.Configuration["SecretKey"] ?? "missing-key";
-
+string cs = builder.Configuration.GetConnectionString("ShopDb") ?? "";
 app.Use(async (context, next) =>
 {
-    string given = context.Request.Headers["X-Secret"].ToString();
-    if (given != secret)
+    if (context.Request.Path.StartsWithSegments("/api/User"))
+    {
+        await next();
+        return;
+    }
+
+    string token = context.Request.Headers["X-Token"].ToString();
+    if (TokenExists(token) == false)
     {
         context.Response.StatusCode = 401;
         await context.Response.WriteAsync("Unauthorized");
@@ -32,7 +37,6 @@ app.Use(async (context, next) =>
 app.UseAuthorization();
 
 app.MapControllers();
-string cs = builder.Configuration.GetConnectionString("ShopDb") ?? "";
 using (SqliteConnection connection = new SqliteConnection(cs))
 {
     connection.Open();
@@ -69,4 +73,24 @@ using (SqliteConnection connection = new SqliteConnection(cs))
     command.ExecuteNonQuery();
 }
 
-    app.Run();
+bool TokenExists(string token)
+{
+    using (SqliteConnection connection = new SqliteConnection(cs))
+    {
+        connection.Open();
+        SqliteCommand command = connection.CreateCommand();
+        command.CommandText = "SELECT Id FROM Tokens WHERE Value = @Value";
+        command.Parameters.AddWithValue("@Value", token);
+        using (SqliteDataReader reader = command.ExecuteReader())
+        {
+            if (reader.Read())
+            {
+                return true;
+            }
+        }
+    }
+    return false;
+
+}
+
+app.Run();
