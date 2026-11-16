@@ -3,7 +3,7 @@
 Kartka na start po każdej przerwie — nie trzeba nic pamiętać ani niczego szukać.
 
 ## 1. Uruchomienie lokalnie (Windows, Visual Studio)
-1. Otwórz `D:\Dane\Projekty\NaukaCSharp\Shop\Shop.slnx` w Visual Studio.
+1. Otwórz `D:\Dane\Projekty\Nauka C#\Shop\Shop.slnx` w Visual Studio.
 2. `Ctrl+F5` (nie F5) — startuje API **i** stronę.
 3. Wejdź na: **http://localhost:5107/products**
 4. Hasło bramy lokalnie: **dev123** (`Shop\src\Shop.Web\appsettings.json` i `Shop\src\Shop.Api\appsettings.json`).
