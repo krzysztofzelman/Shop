@@ -1515,3 +1515,41 @@ Efekt: `(401) Bez autoryzacji.` — czyli brama naprawdę sprawdza bazę, a nie 
 **Uczciwie o autorstwie:** `TokenExists` dostał ode mnie jako gotowy blok (poprosił „naoisz mi to" — 16 linii), wpisał go ręką. Bramę przerobił sam z instrukcji, wyjątek dla `/api/User` też wpisał sam. Dwa `edit` po „popraw d to za mnie" zrobiłem ja. Jego własna robota tego dnia: rozpoznanie ramki `using (SqliteConnection …)` z bloków `CREATE TABLE` i podmiana tylko SQL, ustalenie że `ExecuteNonQuery` jest do rozkazów a `SELECT` potrzebuje readera, build, restart, testy.
 
 **Zostało w kroku 4 (część 3 po stronie klienta):** `Shop\src\Shop.Web\Program.cs` (linia 22) nadal dokleja `X-Secret` do każdego żądania, a `Login.razor` porównuje hasło z `dev123` w pliku zamiast pytać API. Skutek: **`http://localhost:5107/products` nie pokazuje teraz danych** — brama odrzuca `X-Secret`. Do zrobienia: strona loguje się kontem (`POST /api/User/Login`), trzyma token w `AuthState` i wozi go w nagłówku `X-Token`. Do tego czasu `$h = @{ "X-Secret" = "dev123" }` w testach PowerShell trzeba zamienić na `$h = @{ "X-Token" = $t }`.
+
+## DZIEŃ 39 — rename folderu na „Nauka C#" i diagnoza „baza się popsuła" (2026-11-16, poniedziałek)
+
+**Zgłoszenie usera:** „coś mi się popsuło przy zmianach na żywo i porządkach w Shopie, pewnie w Magazynie też". Podejrzenie padło na bazę SQLite po zmianie nazwy folderu-korzenia.
+
+**Co sprawdzone (dowody, nie wrażenia):**
+
+- Rename się odbył — `D:\Dane\Projekty\NaukaCSharp` już nie istnieje, jest `Nauka C#`.
+- **Shop:** `git status` → tylko `M database/shop.db` (dane testowe, świadomie niecommitowane), `HEAD` = `origin/master` = `4eba92b`; build `Shop.slnx` → **3/3 zielone**; strona `/` i `/products` → **200**.
+- **Magazyn:** drzewo czyste, `HEAD` = `origin/main` = `fd00f3c`; build zielony (19 starych ostrzeżeń `null`), API `/api/Przedmioty` → **200**.
+- **Bazy istnieją i otwierają się:** `Shop\database\shop.db` (7 produktów, 3 konta, 2 tokeny) i `Magazyn\data\magazyn.db`.
+- **VPS bezpieczny:** `docker-compose.yml` nadpisuje `ConnectionStrings__ShopDb=Data Source=/app/data/shop.db`, więc windowsowa ścieżka z `appsettings.json` nigdy nie trafia do kontenera.
+- `NaukaCSharp` zostało tylko w **notatkach historycznych** (`shop-notes.md`, `NOTATKA-*.md`) — to dokumentacja, nie kod.
+
+**Prawdziwa przyczyna (nie baza, nie rename):** niedokończony **krok 4 część 3 po stronie klienta**:
+
+- `Shop\src\Shop.Api\Program.cs:27-31` — brama czyta `X-Token` i woła `TokenExists`.
+- `Shop\src\Shop.Web\Program.cs:22` — klient dokleja tylko `X-Secret`.
+- `Shop\src\Shop.Web\Components\Pages\Login.razor:41` — porównuje hasło z `SecretKey` (`dev123`) lokalnie, nigdy nie woła `POST /api/User/Login`.
+
+Skutek: `dev123` **wpuszcza na stronę**, ale każde `api/Product` dostaje **401**, więc tabela jest pusta. Sprawdzone `curl`-em: `X-Secret: dev123` → 401, a konto `anna`/`secret1` → token i 200.
+
+**Konta i hasła (2026-11-16):**
+
+| Gdzie | Login | Hasło | Stan |
+|---|---|---|---|
+| Strona `/login` | — (tylko pole hasła) | `dev123` | wpuszcza, ale bez tokenu |
+| API | `anna` | `secret1` | ✅ hash zgodny, konto działa |
+| API | `krzys` | `test123` | ❌ 2 wiersze z jawnym hasłem, `Login` hashuje — nie zadziała |
+
+**Plan następnej sesji (wspólnie, user pisze — nauka, nie zlecenie):**
+
+1. `AuthState.cs` — dodać pole `Token`.
+2. `Login.razor` — pola login + hasło, `POST api/User/Login`, zapis zwróconego GUID-a w `AuthState`.
+3. `Shop.Web\Program.cs` — jedno miejsce doklejające `X-Token` do każdego wyjścia do API (handler), dzięki czemu 9 wywołań w `Products.razor`, `Orders.razor`, `OrderDetails.razor` zostaje bez zmian.
+4. Test: `anna`/`secret1` → tabela z 7 produktami; złe hasło → 401/komunikat.
+
+**Do decyzji później:** dwa martwe wiersze `krzys` z jawnym hasłem (usunąć albo przerejestrować konto).
