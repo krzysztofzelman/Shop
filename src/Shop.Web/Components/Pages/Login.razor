@@ -1,9 +1,8 @@
 ﻿@page "/login"
 @rendermode InteractiveServer
 @using Microsoft.AspNetCore.Components
-@using Microsoft.Extensions.Configuration
 @inject AuthState Auth
-@inject IConfiguration Config
+@inject HttpClient Http
 @inject NavigationManager Nav
 
 <PageTitle>@Lang.T("Login")</PageTitle>
@@ -14,6 +13,9 @@
     <div class="card-body">
         <form @onsubmit="TryLogin" @onsubmit:preventDefault>
             <div class="row g-2">
+                <div class="col-md-4">
+                    <input @bind="login" placeholder="@(Lang.T("Login"))" class="form-control" />
+                </div>
                 <div class="col-md-4">
                     <input type="password" @bind="password" placeholder="@(Lang.T("Password"))" class="form-control" />
                 </div>
@@ -31,19 +33,24 @@
 </div>
 
 @code {
+    private string login = "";
     private string password = "";
     private bool wrongPassword = false;
 
-    private void TryLogin()
+    private async Task TryLogin()
     {
-        if (password == Config["SecretKey"])
-        {
-            Auth.IsLoggedIn = true;
-            Nav.NavigateTo("/products");
-        }
-        else
+        var response = await Http.PostAsJsonAsync("api/User/Login", new User { Login = login, Password = password });
+
+        if (!response.IsSuccessStatusCode)
         {
             wrongPassword = true;
+            return;
         }
+
+        string token = await response.Content.ReadAsStringAsync();
+        Auth.Token = token.Trim();
+        Auth.IsLoggedIn = true;
+        wrongPassword = false;
+        Nav.NavigateTo("/products");
     }
 }

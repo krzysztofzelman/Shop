@@ -1553,3 +1553,57 @@ Skutek: `dev123` **wpuszcza na stronę**, ale każde `api/Product` dostaje **401
 4. Test: `anna`/`secret1` → tabela z 7 produktami; złe hasło → 401/komunikat.
 
 **Do decyzji później:** dwa martwe wiersze `krzys` z jawnym hasłem (usunąć albo przerejestrować konto).
+
+## DZIEŃ 40 — klient tokenu dokończony: strona loguje się kontem i pokazuje dane (2026-11-17, wtorek)
+
+**Cel:** zamknąć krok 4 część 3 po stronie `Shop.Web` — czyli koniec z `X-Secret` i `dev123`, wejście kontem z bazy i token wożony w `X-Token`.
+
+**Co user napisał sam (3 pliki):**
+
+1. `Shop\src\Shop.Web\AuthState.cs` — pole `public string Token = "";` pod `IsLoggedIn` (wpisał `String`, build przyjął — `String` to alias `string`).
+2. `Shop\src\Shop.Web\TokenHandler.cs` (nowy plik) — `public class TokenHandler : DelegatingHandler`, pole `private readonly AuthState _auth;`, konstruktor `TokenHandler(AuthState auth)` z `_auth = auth;` i `InnerHandler = new HttpClientHandler();`, metoda `protected override async Task<HttpResponseMessage> SendAsync(...)` z `request.Headers.Add("X-Token", _auth.Token);` i `return await base.SendAsync(request, cancellationToken);`.
+3. `Shop\src\Shop.Web\Program.cs` — usunięte `string secret` i `X-Secret`, `AuthState` brany przez `sp.GetRequiredService<AuthState>()`, klient tworzony jako `new HttpClient(new TokenHandler(auth))`.
+
+**Dwie poprawki po drodze (obie mechaniczne, nie w logice):**
+
+- klasa zamknięta klamrą PO polu — konstruktor wylądował poza klasą, na końcu została klamra za dużo; poprawka = cały plik od nowa;
+- konstruktor w DWÓCH wersjach (jego jednolinijkowa + podany blok) → `CS0111`, dwa członki o tym samym podpisie; poprawka = cały plik z jednym konstruktorem.
+
+**Część przejęta przez asystenta („dokończ to za mnie, bo to już za wysoki level jak dla mnie na razie, chcę tylko zamknąć ten etap żeby jakoś chodziła ta aplikacja"):**
+
+- `Program.cs` — dokończone podpięcie przechwytywacza (jak wyżej);
+- `Login.razor` — przebudowany: dwa pola (Login + hasło, nadal w `<form>`, więc Enter działa), `TryLogin` jako `async Task`, `Http.PostAsJsonAsync("api/User/Login", new User { … })`, przy błędzie `wrongPassword = true`, przy 200 zapis tokenu i `Nav.NavigateTo("/products")`; porównywanie z `Config["SecretKey"]` usunięte razem z `@inject IConfiguration`;
+- `AuthNav.razor` — „Wyloguj" czyści też `Auth.Token`.
+
+**Najważniejsze odkrycie dnia (z testu, nie z pamięci):** `POST /api/User/Login` **nie zwraca JSON-a** — `Content-Type: text/plain` i sam GUID bez cudzysłowów:
+
+```
+HTTP/1.1 200 OK
+Content-Type: text/plain; charset=utf-8
+
+19287b66-e529-4677-ae34-cf80391b7085
+```
+
+Dlatego w `Login.razor` jest `await response.Content.ReadAsStringAsync()` (i `Trim()`), a NIE `ReadFromJsonAsync<string>()` — ta druga wersja dałaby zielony build i `JsonException` w runtime.
+
+**Dowody (asystent, lokalnie):**
+
+| Test | Wynik |
+|---|---|
+| `dotnet build Shop.slnx` | Kompilacja powiodła się |
+| `POST /api/User/Login` (`anna`/`secret1`) | `200` + GUID |
+| `GET /api/Product` bez nagłówka | `401` |
+| `GET /api/Product` z `X-Token: <GUID>` | `200` |
+
+**Test usera w przeglądarce: ZALICZONY** — „ok działa”.
+
+**Zmienione pliki (do commita):** `src/Shop.Web/AuthState.cs`, `src/Shop.Web/TokenHandler.cs` (nowy), `src/Shop.Web/Program.cs`, `src/Shop.Web/Components/Pages/Login.razor`, `src/Shop.Web/Components/Layout/AuthNav.razor`, `shop-notes.md`, `JAK-WROCIC.md`. `database/shop.db` zostaje zmieniony i NIE idzie do commita.
+
+**Zostaje na później:**
+
+1. **Wdrożenie na VPS** — serwer stoi na starszym commicie; po `git pull --ff-only` przebudować `shop-api` **i** `shop-web` (brama i klient zmieniły się razem).
+2. **Unieważnianie tokenu przy wylogowaniu** — dziś „Wyloguj" czyści token tylko w pamięci sesji, wiersz w tabeli `Tokens` zostaje ważny. Osobny mały krok: `DELETE /api/User/Logout` + `DELETE FROM Tokens WHERE Value = @Value`.
+3. **Martwe konto `krzys`/`test123`** — w bazie hasło jawne, `Login` hashuje, więc konto nie działa; skasować wiersz albo zarejestrować od nowa.
+4. **Pauza w projekcie (decyzja usera 2026-11-17)** — „musimy tu na chwilę zatrzymać ten projekt bo za dużo tu nie ogarniam”. Etap zamknięty i działający; po powrocie kolejność: przystanek 5 czytania (`@code` w `Products.razor`, od `LoadProducts()`), potem Etap 2 koszyk, React osobno.
+
+**Lekcja dnia:** `DelegatingHandler` to jedno nowe pojęcie i wystarczyło go raz zobaczyć — ale trzy pliki i sześć nowych linii w jednej porcji to za dużo na samodzielne pisanie. Dobry podział: user pisze plik nowy (mechaniczny, 8 linii), asystent przejmuje przebudowę istniejących (stary kod + nowa logika + obsługa błędów).

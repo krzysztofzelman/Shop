@@ -27,6 +27,7 @@ else
     private void Logout()
     {
         Auth.IsLoggedIn = false;
+        Auth.Token = "";
         Nav.NavigateTo("/login");
     }
 
